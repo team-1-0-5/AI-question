@@ -1,11 +1,7 @@
-<script setup lang="ts">
-  import SpeakerHome from './pages/SpeakerHome.vue';
-</script>
+
 
 <template>
-  <div class="fullscreen-container" style="margin: 0; padding: 0;">
-    <SpeakerHome />
-  </div>
+  <router-view />
 </template>
 
 <style>
@@ -14,7 +10,7 @@ html, body {
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow: auto;
   background: #f8f9fb;
   font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', Arial, sans-serif;
 }

@@ -93,10 +93,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRouter,createRouter, createWebHistory } from 'vue-router';
 import BottomNav from '@/components/BottomNav.vue';
 
 const activeMenu = ref<number | null>(null);
 const sortOption = ref('default');
+const router = useRouter();
 
 const lectures = ref([
   {
@@ -194,7 +196,7 @@ const sortedLectures = computed(() => {
 });
 
 function onCreate() {
-  alert('TODO: 跳转到创建演讲页面');
+  router.push({ path: '/create-lecture' });
 }
 
 function formatDate(dateString: string) {
