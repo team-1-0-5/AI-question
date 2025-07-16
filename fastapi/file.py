@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
@@ -45,7 +46,8 @@ async def upload_file(
 
     try:
         # 创建安全的文件名
-        filename = f"{uid}_{file.filename}"
+
+        filename = f"{uid}__{time.time()}_{file.filename}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
         # 保存文件
