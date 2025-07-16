@@ -3,6 +3,7 @@ import SpeakerHome from '@/pages/SpeakerHome.vue';
 import CreateLecture from '@/pages/CreateLecture.vue';
 import AnswerQuiz from '@/pages/AnswerQuiz.vue';
 import AnswerRes from '@/pages/AnswerRes.vue';
+import Speaker_MainLct from '@/pages/Speaker_MainLct.vue';
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/answer-res',
     name: 'AnswerRes',
     component: AnswerRes
+  },
+  {
+    path: '/speaker-main-lct',
+    name: 'Speaker_MainLct',
+    component: Speaker_MainLct
   }
 ];
 
