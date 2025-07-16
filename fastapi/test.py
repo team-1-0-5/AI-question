@@ -36,6 +36,6 @@ def login(data=Body(None)):
 def login2(username=Form(None), pw=Form(None)):
     return {"username": username, "password": pw}
 
-
 if __name__ == '__main__':
     uvicorn.run(app)
+
