@@ -11,11 +11,26 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 15/07/2025 21:10:50
+ Date: 16/07/2025 19:46:27
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for allocation
+-- ----------------------------
+DROP TABLE IF EXISTS `allocation`;
+CREATE TABLE `allocation`  (
+  `user_id` int NOT NULL,
+  `question_id` int NOT NULL,
+  `times` datetime NOT NULL,
+  PRIMARY KEY (`user_id`, `question_id`, `times`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of allocation
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for create_speech
@@ -81,7 +96,9 @@ CREATE TABLE `question`  (
 DROP TABLE IF EXISTS `question_user`;
 CREATE TABLE `question_user`  (
   `question_id` int NOT NULL,
-  `user_id` int NOT NULL
+  `user_id` int NOT NULL,
+  `user_answer` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`question_id` DESC, `user_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -94,9 +111,9 @@ CREATE TABLE `question_user`  (
 DROP TABLE IF EXISTS `speech`;
 CREATE TABLE `speech`  (
   `speech_id` int NOT NULL,
-  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
-  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
-  `begin_time` datetime NULL DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `begin_time` datetime NOT NULL,
   PRIMARY KEY (`speech_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
