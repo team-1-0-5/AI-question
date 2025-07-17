@@ -1,8 +1,12 @@
 <template>
   <div class="speaker-home">
     <header class="sh-header">
-      <h2 class="header-title">我的讲座课程</h2>
-      <button class="create-btn" @click="onCreate">
+      <h2 class="header-title">
+        <template v-if="activeTab === 0">我的讲座课程</template>
+        <template v-else-if="activeTab === 1">数据总览</template>
+        <template v-else>个人中心</template>
+      </h2>
+      <button v-if="activeTab === 0" class="create-btn" @click="onCreate">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -11,7 +15,7 @@
       </button>
     </header>
 
-    <section class="lecture-list">
+    <section v-if="activeTab === 0" class="lecture-list">
       <div v-if="lectures.length === 0" class="empty-state">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9e9e9e" stroke-width="1.5">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -33,6 +37,8 @@
             :key="lecture.id"
             class="lecture-card"
             :class="getStatusClass(lecture.status)"
+            @click="handleLectureClick(lecture)"
+            :style="lecture.status === '进行中' ? 'cursor:pointer;' : ''"
           >
             <div class="status-indicator" :class="getStatusClass(lecture.status)"></div>
             <div class="card-content">
@@ -87,18 +93,107 @@
       </div>
     </section>
 
-    <BottomNav :active="0" @changeTab="onTabChange" />
+    <!-- 数据总览页面 -->
+    <section v-else-if="activeTab === 1" class="overview-section">
+      <div class="overview-header">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
+          <rect x="3" y="12" width="3" height="8" rx="1"/>
+          <rect x="8" y="8" width="3" height="12" rx="1"/>
+          <rect x="13" y="4" width="3" height="16" rx="1"/>
+          <rect x="18" y="16" width="3" height="4" rx="1"/>
+        </svg>
+        <span class="overview-title">最近演讲答题数据总览</span>
+      </div>
+      <div class="overview-stats">
+        <div class="stat-item">
+          <div class="stat-label">总答题数</div>
+          <div class="stat-value">{{ totalAnswers }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">平均正确率</div>
+          <div class="stat-value">{{ Math.round(avgCorrectRate * 100) }}%</div>
+        </div>
+      </div>
+      <div class="overview-chart">
+        <div class="chart-title">最近5场讲座正确率变化</div>
+        <div class="chart-container" style="position:relative;">
+          <!-- 横坐标右侧为最近时间，鼠标悬停显示讲座名 -->
+          <svg :width="280" :height="120" viewBox="0 0 280 120" @mouseleave="hideTooltip">
+            <polyline
+              :points="chartData.map((rate, i) => `${(chartData.length-1-i)*56},${120 - rate}` ).join(' ')"
+              fill="none"
+              stroke="#4caf50"
+              stroke-width="3"
+            />
+            <circle
+              v-for="(rate, i) in chartData"
+              :key="i"
+              :cx="(chartData.length-1-i)*56"
+              :cy="120 - rate"
+              r="5"
+              fill="#4caf50"
+              @mouseenter="showTooltip(i, $event)"
+            />
+            <text
+              v-for="(label, i) in chartLabels"
+              :key="label"
+              :x="(chartLabels.length-1-i)*56"
+              y="115"
+              font-size="12"
+              text-anchor="middle"
+              fill="#555"
+            >{{ label }}</text>
+          </svg>
+          <div v-if="tooltip.visible" class="chart-tooltip" :style="{left: tooltip.x+'px', top: tooltip.y+'px'}">
+            {{ tooltip.title }}
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span v-for="(rate, i) in chartData" :key="i" class="legend-item">
+            <span class="legend-dot" :style="{ background: '#4caf50' }"></span>
+            {{ chartLabels[i] }}：{{ rate }}%
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 个人中心占位 -->
+    <section v-else class="center-section">
+      <div class="center-placeholder">个人中心功能开发中...</div>
+    </section>
+
+    <BottomNav :active="activeTab" @changeTab="onTabChange" />
   </div>
 </template>
 
 <script setup lang="ts">
+// 折线图tooltip
+import { ref as vueRef } from 'vue';
+const tooltip = vueRef({ visible: false, title: '', x: 0, y: 0 });
+function showTooltip(i: number, evt: MouseEvent) {
+  tooltip.value.visible = true;
+  tooltip.value.title = recentLectures.value[recentLectures.value.length-1-i].title;
+  tooltip.value.x = evt.offsetX + 20;
+  tooltip.value.y = evt.offsetY - 10;
+}
+function hideTooltip() {
+  tooltip.value.visible = false;
+}
+
+// 讲座卡片点击跳转
+function handleLectureClick(lecture: any) {
+  if (lecture.status === '进行中') {
+    router.push({ path: '/speaker-main-lct', query: { id: lecture.id } });
+  }
+}
 import { ref, computed } from 'vue';
-import { useRouter,createRouter, createWebHistory } from 'vue-router';
+import { useRouter } from 'vue-router';
 import BottomNav from '@/components/BottomNav.vue';
 
 const activeMenu = ref<number | null>(null);
 const sortOption = ref('default');
 const router = useRouter();
+const activeTab = ref(0); // 0: 讲座列表, 1: 数据总览, 2: 个人中心
 
 const lectures = ref([
   {
@@ -108,7 +203,9 @@ const lectures = ref([
     time: '14:00-16:00',
     location: '线上会议',
     participants: 120,
-    status: '进行中'
+    status: '进行中',
+    correctRate: 0.82,
+    totalAnswers: 150
   },
   {
     id: 2,
@@ -117,7 +214,9 @@ const lectures = ref([
     time: '10:00-12:00',
     location: '科技大厦B座201',
     participants: 85,
-    status: '已结束'
+    status: '已结束',
+    correctRate: 0.76,
+    totalAnswers: 110
   },
   {
     id: 3,
@@ -126,7 +225,9 @@ const lectures = ref([
     time: '13:30-15:30',
     location: '创新中心报告厅',
     participants: 92,
-    status: '已结束'
+    status: '已结束',
+    correctRate: 0.68,
+    totalAnswers: 98
   },
   {
     id: 4,
@@ -135,7 +236,9 @@ const lectures = ref([
     time: '09:00-11:30',
     location: '线上会议',
     participants: 67,
-    status: '即将开始'
+    status: '即将开始',
+    correctRate: null,
+    totalAnswers: 0
   },
   {
     id: 5,
@@ -144,7 +247,9 @@ const lectures = ref([
     time: '15:00-17:00',
     location: '研发中心会议室',
     participants: 45,
-    status: '即将开始'
+    status: '即将开始',
+    correctRate: null,
+    totalAnswers: 0
   },
   {
     id: 6,
@@ -153,47 +258,61 @@ const lectures = ref([
     time: '13:00-15:00',
     location: '科技园区A栋101',
     participants: 78,
-    status: '进行中'
+    status: '进行中',
+    correctRate: 0.88,
+    totalAnswers: 120
   },
 ]);
 
 // 计算排序后的讲座列表
 const sortedLectures = computed(() => {
   const lecturesCopy = [...lectures.value];
-
-  // 按日期排序
   if (sortOption.value === 'dateAsc') {
     return lecturesCopy.sort((a, b) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
   }
-
   if (sortOption.value === 'dateDesc') {
     return lecturesCopy.sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }
-
-  // 默认排序：状态优先级 + 时间排序
+  const statusOrder = {
+    '进行中': 1,
+    '即将开始': 2,
+    '已结束': 3
+  } as const;
+  type StatusKey = keyof typeof statusOrder;
   return lecturesCopy.sort((a, b) => {
-    // 状态优先级：进行中 > 即将开始 > 已结束
-    const statusOrder = {
-      '进行中': 1,
-      '即将开始': 2,
-      '已结束': 3
-    } as const;
-
-    type StatusKey = keyof typeof statusOrder;
-
-    // 如果状态不同，按状态优先级排序
     if (statusOrder[a.status as StatusKey] !== statusOrder[b.status as StatusKey]) {
       return statusOrder[a.status as StatusKey] - statusOrder[b.status as StatusKey];
     }
-
-    // 相同状态下，按日期从近到远排序（最近的在前）
     return new Date(a.date).getTime() - new Date(b.date).getTime();
   });
 });
+
+// 数据总览相关
+const recentLectures = computed(() => {
+  return lectures.value
+    .filter(l => typeof l.correctRate === 'number')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+});
+
+const totalAnswers = computed(() => {
+  return lectures.value.reduce((sum, l) => sum + (l.totalAnswers || 0), 0);
+});
+
+const avgCorrectRate = computed(() => {
+  const rates = lectures.value.filter(l => typeof l.correctRate === 'number').map(l => l.correctRate as number);
+  if (rates.length === 0) return 0;
+  return (rates.reduce((sum, r) => sum + r, 0) / rates.length);
+});
+
+const chartLabels = computed(() => recentLectures.value.map(l => formatDate(l.date)));
+const chartData = computed(() => recentLectures.value.map(l => Math.round((l.correctRate as number) * 100)));
+
+// ...existing code...
 
 function onCreate() {
   router.push({ path: '/create-lecture' });
@@ -205,8 +324,7 @@ function formatDate(dateString: string) {
 }
 
 function onTabChange(idx: number) {
-  if(idx === 1) alert('TODO: 跳转统计数据');
-  if(idx === 2) alert('TODO: 跳转个人中心');
+  activeTab.value = idx;
 }
 
 function getStatusClass(status: string) {
@@ -241,12 +359,122 @@ function deleteLecture(lecture: any) {
 </script>
 
 <style scoped>
+/* 折线图tooltip样式 */
+.chart-tooltip {
+  position: absolute;
+  background: #fff;
+  color: #1565c0;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.98rem;
+  box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+  pointer-events: none;
+  z-index: 99;
+}
+/* ...existing code... */
 .speaker-home {
-  height: 100vh; /* 改用视口高度 */
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: env(safe-area-inset-bottom); /* 适配刘海屏 */
+  padding-bottom: env(safe-area-inset-bottom);
   background: #f8f9fb;
+}
+
+.overview-section {
+  flex: 1;
+  padding: 2rem 1.5rem 80px 1.5rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.overview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+.overview-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2e7d32;
+}
+.overview-stats {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+.stat-item {
+  background: #f8f9fb;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.07);
+}
+.stat-label {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4caf50;
+}
+.overview-chart {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  background: #f8f9fb;
+  border-radius: 16px;
+  padding: 1.2rem 1rem 1.5rem 1rem;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.07);
+}
+.chart-title {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.8rem;
+  text-align: center;
+}
+.chart-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  font-size: 0.92rem;
+  color: #555;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.center-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  font-size: 1.1rem;
+  color: #aaa;
+}
+.center-placeholder {
+  text-align: center;
+  color: #aaa;
 }
 
 .sh-header {

@@ -159,7 +159,7 @@ function handleJumpPage() {
 }
 
 // 正确率数据
-const correctRate = ref(78.5)
+const correctRate = ref(80)
 const progressColor = computed(() => {
   return correctRate.value > 80 ? '#67C23A' : '#E6A23C'
 })
@@ -177,9 +177,9 @@ watch(currentPage, (val) => {
 
 // 排名数据
 const rankingData = ref([
-  { rank: 1, name: "张三", accuracy: 92 },
-  { rank: 2, name: "李四", accuracy: 88 },
-  { rank: 3, name: "王五", accuracy: 85 }
+  { rank: 1, name: "张三", accuracy: 90 },
+  { rank: 2, name: "李四", accuracy: 80 },
+  { rank: 3, name: "王五", accuracy: 70 }
 ])
 
 const prevSlide = () => currentPage.value--
