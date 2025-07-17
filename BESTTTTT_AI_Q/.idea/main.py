@@ -74,11 +74,25 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "Content-Type": "application/json"
     }
     prompt = (
-        "你是一个智能助理。请根据以下内容：\n"
-        + "\n".join(text_list) +
-        "\n\n1. 只做简明扼要的总结（不超过150字）。\n"
-        "2. 针对总结内容，提出3个关键问题，每个问题给出4个选项（只有一个正确，其余为干扰项）。\n"
-        "3. 每个问题请明确给出正确答案（用A/B/C/D表示），格式如下：\n"
+ "你是一个严谨的PPT内容分析专家，请严格按以下要求处理用户提供的文本：\n"
+    + "\n".join(text_list) +
+    "\n\n**任务要求：**"
+    "\n1. **总结规则：**"
+    "\n   - 用最简练语言概括核心内容，删除所有冗余描述"
+    "\n   - 必须聚焦主旨，禁止添加个人观点"
+    "\n   - 严格控制在120-150字之间（超出即失效）"
+    "\n2. **问题生成规则：**"
+    "\n   - 基于总结内容提出3个关键问题，覆盖主要知识点"
+    "\n   - 每个问题必须满足："
+    "\n     * 选项A/B/C/D中仅1个正确（明确标注正确答案）"
+    "\n     * 干扰项需具备迷惑性（例如：部分正确表述/相关概念混淆）"
+    "\n     * 禁止出现『以上都对』类模糊选项"
+    "\n   - 问题难度梯度：1基础概念→2原理分析→3应用推论"
+    "\n3. **容错机制：**"
+    "\n   - 若文本存在矛盾/歧义，在总结中标注『存疑点』"
+    "\n   - 无法生成合格问题时返回『问题生成失败』"
+    "\n\n**输出格式（必须严格遵守）：**"
+        "输出格式要求：\n"
         "总结：...\n"
         "问题1：...\n"
         "A. ...\n"
@@ -95,7 +109,7 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "model": "chatglm_std",
         "prompt": prompt
     }
-    response = requests.post(url, headers=headers, json=data, proxies={"http": None, "https": None})
+    response = requests.post(url, headers=headers, json=data)
     print("ChatGLM原始返回内容：", response.text)
     if response.status_code != 200:
         raise RuntimeError(f"ChatGLM API 调用失败: {response.text}")
@@ -111,33 +125,29 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
     answer_indices = []
     current_options = []
     for line in lines:
-        # 匹配总结
+        line = line.strip()
+        if not line:
+            continue
         if line.startswith('总结：') or line.startswith('总结'):
             summary = line.replace('总结：', '').replace('总结', '').strip()
-        # 匹配题干（如“1.”、“1、”、“1:”、“Q1:”等）
-        elif (re.match(r'^问题[1-9][0-9]*[：:]', line.strip()) or
-              re.match(r'^(问题)?[Qq]?[1-9][0-9]*[.、:：\\s]', line.strip())):
+        # 兼容多种“问题”前缀，包括加粗、冒号、点号、空格、星号等
+        elif re.match(r'^(\*+)?[#\s]*问题[1-9][0-9]*([：:：. ]|\*+)', line):
             if current_options:
                 option_texts.extend(current_options)
-                # 默认第一个选项为正确答案
-                answer_indices.append('0')
                 current_options = []
-            q_text = re.sub(r'^(问题)?[Qq]?[1-9][0-9]*[.、:：\\s]+', '', line.strip())
+            q_text = re.sub(r'^(\*+)?[#\s]*问题[1-9][0-9]*([：:：. ]|\*+)+', '', line)
             question_texts.append(q_text)
-        # 匹配选项（如“A.”、“A:”、“A、”等）
-        elif re.match(r'^[A-Da-d][.、:：\\s]', line.strip()):
-            option_text = re.sub(r'^[A-Da-d][.、:：\\s]+', '', line.strip())
+        elif re.match(r'^[A-Da-d][.、:：\s]', line):
+            option_text = re.sub(r'^[A-Da-d][.、:：\s]+', '', line)
             current_options.append(option_text)
-        # 检查是否有“正确答案”或“答案”字段
-        elif '正确答案' in line or '答案' in line:
-            # 尝试提取答案字母
+        elif '正确答案' in line:
             match = re.search(r'[A-Da-d]', line)
             if match:
                 idx = ord(match.group(0).upper()) - ord('A')
-                if len(answer_indices) < len(question_texts):
-                    answer_indices.append(str(idx))
+                answer_indices.append(str(idx))
     if current_options:
         option_texts.extend(current_options)
+    while len(answer_indices) < len(question_texts):
         answer_indices.append('0')
     questions_str = '\n'.join(question_texts)
     options_str = '\n'.join(option_texts)
