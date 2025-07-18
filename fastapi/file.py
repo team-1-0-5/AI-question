@@ -1,13 +1,14 @@
 import os
-import shutil
 import time
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi_cli import logging
 from tortoise.contrib.fastapi import register_tortoise
 from tortoise.exceptions import DoesNotExist
 
+import speaker
 from DAO.models import User, File, UserFile
 from config import DB_CONFIG
 
@@ -19,6 +20,8 @@ register_tortoise(
     config=DB_CONFIG,
     add_exception_handlers=True,
 )
+
+app.include_router(speaker.router)
 
 
 @app.get("/")
@@ -124,12 +127,9 @@ async def download_file(
 
 
 @app.post("/file_info")
-async def get_combined_info(fid: int=Form(...), uid: int=Form(...)):
-    print(fid)
+async def get_combined_info(fid: int = Form(...), uid: int = Form(...)):
     file = await File.get_or_none(file_id=fid)
     user = await User.get_or_none(user_id=uid)
-    print(fid)
-    print(file)
     return {
         "fid": fid,
         "file_name": file.file_address if file else None,
