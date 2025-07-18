@@ -172,6 +172,76 @@ def test_summarize_and_generate_questions(ppt_path, glm_api_key):
     print("答案索引列表：")
     print(result['answer_indices_str'])
 
+def ppt_to_images(ppt_path, output_dir=None):
+    """
+    将PPT每一页渲染为图片，保存到当前目录或指定目录。
+    图片命名为 page_1.png、page_2.png ...
+    依赖：python-pptx、Pillow
+    """
+    import os
+    from pptx import Presentation
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+    from PIL import Image, ImageDraw, ImageFont
+
+    prs = Presentation(ppt_path)
+    if output_dir is None:
+        output_dir = os.getcwd()
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 尝试获取PPT页面尺寸
+    width, height = prs.slide_width, prs.slide_height
+    # 转为像素（1英寸=914400EMU, 1英寸=96像素）
+    px_width = int(width * 96 / 914400)
+    px_height = int(height * 96 / 914400)
+
+    # 指定支持中文的字体路径（如simhei.ttf），如有需要请修改为你本机的字体文件
+    font_path = "C:/Windows/Fonts/simhei.ttf"
+    font = ImageFont.truetype(font_path, 24)
+
+    for idx, slide in enumerate(prs.slides, 1):
+        img = Image.new('RGB', (px_width, px_height), 'white')
+        draw = ImageDraw.Draw(img)
+        y = 20
+        # 简单渲染文本内容
+        for shape in slide.shapes:
+            text = getattr(shape, "text", None)
+            if text and text.strip():
+                draw.text((20, y), text.strip(), fill='black', font=font)
+                y += 40
+        img_path = os.path.join(output_dir, f"page_{idx}.png")
+        img.save(img_path)
+    print(f"PPT每页图片已保存到: {output_dir}")
+
+def ppt_to_images_with_office(ppt_path, output_dir=None):
+    """
+    使用PowerPoint自动化将PPT每页完整导出为图片，保留原始背景和格式。
+    输出文件夹为PPT同名（不含扩展名），每页图片命名为1.JPG、2.JPG等。
+    依赖：pip install pywin32，需本机安装Microsoft Office PowerPoint。
+    """
+    import os
+    import win32com.client
+    import re
+    ppt_basename = os.path.splitext(os.path.basename(ppt_path))[0]
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), ppt_basename)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    ppt_app = win32com.client.Dispatch('PowerPoint.Application')
+    ppt_app.Visible = 1
+    presentation = ppt_app.Presentations.Open(ppt_path, WithWindow=False)
+    # 17=ppSaveAsJPG，18=ppSaveAsPNG
+    presentation.SaveAs(output_dir, 17)
+    presentation.Close()
+    ppt_app.Quit()
+    # 重命名“幻灯片X.JPG”为“X.JPG”
+    for fname in os.listdir(output_dir):
+        match = re.match(r'幻灯片(\d+)\.JPG', fname, re.IGNORECASE)
+        if match:
+            new_name = f"{int(match.group(1))}.JPG"
+            os.rename(os.path.join(output_dir, fname), os.path.join(output_dir, new_name))
+    print(f'PPT每页图片已保存到: {output_dir}')
+
 if __name__ == "__main__":
     ppt_path = r"E:\软件大发现\AI-question\BESTTTTT_AI_Q\test.pptx"
     # result = ppt_to_text_list(ppt_path)
@@ -186,5 +256,8 @@ if __name__ == "__main__":
     # print(audio_text) 
 
     # 新增：测试 summarize_and_generate_questions
-    glm_api_key = "a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh"  # TODO: 替换为你的智谱API Key
-    test_summarize_and_generate_questions(ppt_path, glm_api_key) 
+    # glm_api_key = "a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh"  # TODO: 替换为你的智谱API Key
+    # test_summarize_and_generate_questions(ppt_path, glm_api_key)
+
+    # 新增：测试 ppt_to_images_with_office
+    ppt_to_images_with_office(ppt_path) 
