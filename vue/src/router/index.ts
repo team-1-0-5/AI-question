@@ -9,6 +9,16 @@ import LectureDetail from '@/pages/LectureDetail.vue';
 
 const routes = [
   {
+    path: '/speaker-upcoming-detail',
+    name: 'SpeakerUpcomingDetail',
+    component: () => import('@/pages/SpeakerUpcomingDetail.vue')
+  },
+  {
+    path: '/speaker-ended-detail',
+    name: 'SpeakerEndedDetail',
+    component: () => import('@/pages/SpeakerEndedDetail.vue')
+  },
+  {
     path: '/',
     name: 'SpeakerHome',
     component: SpeakerHome

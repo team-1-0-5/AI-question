@@ -34,7 +34,7 @@
         <ul class="lecture-grid">
           <li
             v-for="lecture in sortedLectures"
-            :key="lecture.id"
+            :key="lecture.lid"
             class="lecture-card"
             :class="getStatusClass(lecture.status)"
             @click="handleLectureClick(lecture)"
@@ -42,30 +42,28 @@
           >
             <div class="status-indicator" :class="getStatusClass(lecture.status)"></div>
             <div class="card-content">
-              <h3 class="lecture-title">{{ lecture.title }}</h3>
+              <h3 class="lecture-title">{{ lecture.name }}</h3>
               <div class="lecture-info">
                 <div class="info-row">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
-                  <span>{{ formatDate(lecture.date) }} | {{ lecture.time }}</span>
+                  <span>{{ formatDate(lecture.start_time) }}</span>
                 </div>
                 <div class="info-row">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>
-                  <span>{{ lecture.location }}</span>
+                  <span>演讲者：{{ lecture.speaker }}</span>
                 </div>
                 <div class="info-row">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M8 8h8v8H8z"/>
                   </svg>
-                  <span>{{ lecture.participants }}人参与</span>
+                  <span>文件数：{{ lecture.fids.length }}</span>
                 </div>
               </div>
             </div>
@@ -75,14 +73,14 @@
               </span>
             </div>
             <div class="card-hover-content">
-              <button class="action-btn" @click.stop="toggleMenu(lecture.id)">
+              <button class="action-btn" @click.stop="toggleMenu(lecture.lid)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="1"></circle>
                   <circle cx="12" cy="5" r="1"></circle>
                   <circle cx="12" cy="19" r="1"></circle>
                 </svg>
               </button>
-              <div v-if="activeMenu === lecture.id" class="action-menu">
+              <div v-if="activeMenu === lecture.lid" class="action-menu">
                 <button @click="editLecture(lecture)">编辑</button>
                 <button @click="shareLecture(lecture)">分享</button>
                 <button @click="deleteLecture(lecture)" class="delete">删除</button>
@@ -172,7 +170,7 @@ import { ref as vueRef } from 'vue';
 const tooltip = vueRef({ visible: false, title: '', x: 0, y: 0 });
 function showTooltip(i: number, evt: MouseEvent) {
   tooltip.value.visible = true;
-  tooltip.value.title = recentLectures.value[recentLectures.value.length-1-i].title;
+  tooltip.value.title = recentLectures.value[recentLectures.value.length-1-i].name;
   tooltip.value.x = evt.offsetX + 20;
   tooltip.value.y = evt.offsetY - 10;
 }
@@ -182,9 +180,13 @@ function hideTooltip() {
 
 // 讲座卡片点击跳转
 function handleLectureClick(lecture: any) {
-  if (lecture.status === '进行中') {
-    router.push({ path: '/speaker-main-lct', query: { id: lecture.id } });
-  }
+if (lecture.status === '进行中') {
+  router.push({ path: '/speaker-main-lct', query: { lid: lecture.lid } });
+} else if (lecture.status === '即将开始') {
+  router.push({ path: '/speaker-upcoming-detail', query: { lid: lecture.lid } });
+} else if (lecture.status === '已结束') {
+  router.push({ path: '/speaker-ended-detail', query: { lid: lecture.lid } });
+}
 }
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -197,84 +199,58 @@ const activeTab = ref(0); // 0: 讲座列表, 1: 数据总览, 2: 个人中心
 
 const lectures = ref([
   {
-    id: 1,
-    title: 'AI与未来教育变革趋势分析',
-    date: '2025-07-15',
-    time: '14:00-16:00',
-    location: '线上会议',
-    participants: 120,
-    status: '进行中',
-    correctRate: 0.82,
-    totalAnswers: 150
+    lid: 1,
+    name: 'AI与未来教育变革趋势分析',
+    speaker: 'zhangsan',
+    start_time: '2025-07-15 14:00',
+    fids: [101, 102],
+    status: '进行中'
   },
   {
-    id: 2,
-    title: '大数据分析实战技巧与应用',
-    date: '2025-06-28',
-    time: '10:00-12:00',
-    location: '科技大厦B座201',
-    participants: 85,
-    status: '已结束',
-    correctRate: 0.76,
-    totalAnswers: 110
+    lid: 2,
+    name: '大数据分析实战技巧与应用',
+    speaker: 'lisi',
+    start_time: '2025-06-28 10:00',
+    fids: [103],
+    status: '已结束'
   },
   {
-    id: 3,
-    title: '高效PPT设计与演讲技巧',
-    date: '2025-05-15',
-    time: '13:30-15:30',
-    location: '创新中心报告厅',
-    participants: 92,
-    status: '已结束',
-    correctRate: 0.68,
-    totalAnswers: 98
+    lid: 3,
+    name: '高效PPT设计与演讲技巧',
+    speaker: 'wangwu',
+    start_time: '2025-05-15 13:30',
+    fids: [104, 105],
+    status: '已结束'
   },
   {
-    id: 4,
-    title: '云计算架构设计与实践',
-    date: '2025-08-22',
-    time: '09:00-11:30',
-    location: '线上会议',
-    participants: 67,
-    status: '即将开始',
-    correctRate: null,
-    totalAnswers: 0
+    lid: 4,
+    name: '云计算架构设计与实践',
+    speaker: 'zhaoliu',
+    start_time: '2025-08-22 09:00',
+    fids: [],
+    status: '即将开始'
   },
   {
-    id: 5,
-    title: '前端工程化与性能优化',
-    date: '2025-08-05',
-    time: '15:00-17:00',
-    location: '研发中心会议室',
-    participants: 45,
-    status: '即将开始',
-    correctRate: null,
-    totalAnswers: 0
-  },
-  {
-    id: 6,
-    title: '区块链技术应用实践',
-    date: '2025-07-10',
-    time: '13:00-15:00',
-    location: '科技园区A栋101',
-    participants: 78,
-    status: '进行中',
-    correctRate: 0.88,
-    totalAnswers: 120
-  },
-]);
+    lid: 5,
+    name: '前端工程化与性能优化',
+    speaker: 'sunqi',
+    start_time: '2025-08-05 15:00',
+    fids: [106],
+    status: '即将开始'
+  }
+])
 
 // 计算排序后的讲座列表
 const sortedLectures = computed(() => {
   const lecturesCopy = [...lectures.value];
   if (sortOption.value === 'dateAsc') {
     return lecturesCopy.sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
   }
   if (sortOption.value === 'dateDesc') {
     return lecturesCopy.sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+      new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
     );
   }
   const statusOrder = {
@@ -287,32 +263,23 @@ const sortedLectures = computed(() => {
     if (statusOrder[a.status as StatusKey] !== statusOrder[b.status as StatusKey]) {
       return statusOrder[a.status as StatusKey] - statusOrder[b.status as StatusKey];
     }
-    return new Date(a.date).getTime() - new Date(b.date).getTime();
+    return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
   });
-});
+})
 
 // 数据总览相关
 const recentLectures = computed(() => {
+  // 仅展示最近5个演讲（按时间倒序）
   return lectures.value
-    .filter(l => typeof l.correctRate === 'number')
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice()
+    .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
     .slice(0, 5);
-});
+})
 
-const totalAnswers = computed(() => {
-  return lectures.value.reduce((sum, l) => sum + (l.totalAnswers || 0), 0);
-});
-
-const avgCorrectRate = computed(() => {
-  const rates = lectures.value.filter(l => typeof l.correctRate === 'number').map(l => l.correctRate as number);
-  if (rates.length === 0) return 0;
-  return (rates.reduce((sum, r) => sum + r, 0) / rates.length);
-});
-
-const chartLabels = computed(() => recentLectures.value.map(l => formatDate(l.date)));
-const chartData = computed(() => recentLectures.value.map(l => Math.round((l.correctRate as number) * 100)));
-
-// ...existing code...
+const totalAnswers = computed(() => 0)
+const avgCorrectRate = computed(() => 0)
+const chartLabels = computed(() => recentLectures.value.map(l => formatDate(l.start_time)))
+const chartData = computed(() => recentLectures.value.map(() => 0))
 
 function onCreate() {
   router.push({ path: '/create-lecture' });
@@ -341,18 +308,18 @@ function toggleMenu(id: number) {
 }
 
 function editLecture(lecture: any) {
-  alert(`编辑讲座: ${lecture.title}`);
+  alert(`编辑讲座: ${lecture.name}`);
   activeMenu.value = null;
 }
 
 function shareLecture(lecture: any) {
-  alert(`分享讲座: ${lecture.title}`);
+  alert(`分享讲座: ${lecture.name}`);
   activeMenu.value = null;
 }
 
 function deleteLecture(lecture: any) {
-  if(confirm(`确定删除讲座 "${lecture.title}" 吗？`)) {
-    lectures.value = lectures.value.filter(l => l.id !== lecture.id);
+  if(confirm(`确定删除讲座 "${lecture.name}" 吗？`)) {
+    lectures.value = lectures.value.filter(l => l.lid !== lecture.lid);
   }
   activeMenu.value = null;
 }
@@ -372,7 +339,7 @@ function deleteLecture(lecture: any) {
   pointer-events: none;
   z-index: 99;
 }
-/* ...existing code... */
+
 .speaker-home {
   height: 100vh;
   display: flex;

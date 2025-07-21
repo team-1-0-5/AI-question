@@ -26,35 +26,33 @@
 
       <ul class="lecture-grid">
         <li v-for="lecture in filteredLectures"
-            :key="lecture.id"
+            :key="lecture.lid"
             class="lecture-card"
-            @click="navigateToDetail(lecture.id)">
+            @click="navigateToDetail(lecture.lid)">
           <div class="status-indicator active"></div>
           <div class="card-content">
-            <h3 class="lecture-title">{{ lecture.title }}</h3>
+            <h3 class="lecture-title">{{ lecture.name }}</h3>
             <div class="lecture-info">
               <div class="info-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <circle cx="12" cy="12" r="10"></circle>
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <span>{{ formatDate(lecture.date) }} {{ lecture.time }}</span>
+                <span>{{ formatDate(lecture.start_time) }}</span>
               </div>
               <div class="info-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
                 </svg>
-                <span>{{ lecture.location }}</span>
+                <span>演讲者：{{ lecture.speaker }}</span>
               </div>
               <div class="info-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  <rect x="4" y="4" width="16" height="16" rx="2"/>
+                  <path d="M8 8h8v8H8z"/>
                 </svg>
-                <span>{{ lecture.participants }}人参与</span>
+                <span>文件数：{{ lecture.fids.length }}</span>
               </div>
             </div>
           </div>
@@ -68,12 +66,12 @@
     <section v-else-if="activeTab === 'history'" class="history-list">
       <div v-if="historyLectures.length === 0" class="empty-tip">暂无历史演讲</div>
       <ul v-else>
-        <li v-for="lecture in historyLectures" :key="lecture.id" class="history-card">
-          <div class="history-title">{{ lecture.title }}</div>
+        <li v-for="lecture in historyLectures" :key="lecture.lid" class="history-card">
+          <div class="history-title">{{ lecture.name }}</div>
           <div class="history-meta">
-            <span>时间：{{ formatDate(lecture.date) }} {{ lecture.time }}</span>
-            <span>地点：{{ lecture.location }}</span>
-            <span>参与人数：{{ lecture.participants }}</span>
+            <span>时间：{{ formatDate(lecture.start_time) }}</span>
+            <span>演讲者：{{ lecture.speaker }}</span>
+            <span>文件数：{{ lecture.fids.length }}</span>
           </div>
           <div class="history-status">{{ lecture.status }}</div>
         </li>
@@ -117,21 +115,19 @@ const activeTab = ref('home');
 // 历史数据假数据
 const historyLectures = ref([
   {
-    id: 1,
-    title: 'AI与未来教育变革趋势分析',
-    date: '2025-07-15',
-    time: '14:00-16:00',
-    location: '线上会议',
-    participants: 120,
+    lid: 2,
+    name: '大数据分析实战技巧与应用',
+    speaker: 'lisi',
+    start_time: '2025-06-28 10:00',
+    fids: [103],
     status: '已结束'
   },
   {
-    id: 2,
-    title: '大数据分析实战技巧与应用',
-    date: '2025-06-28',
-    time: '10:00-12:00',
-    location: '科技大厦B座201',
-    participants: 85,
+    lid: 3,
+    name: '高效PPT设计与演讲技巧',
+    speaker: 'wangwu',
+    start_time: '2025-05-15 13:30',
+    fids: [104, 105],
     status: '已结束'
   }
 ]);
@@ -145,78 +141,52 @@ const sortOption = ref('timeAsc');
 // 模拟进行中的演讲数据
 const lectures = ref([
   {
-    id: 1,
-    title: 'AI与未来教育变革趋势分析',
-    date: '2025-07-15',
-    time: '14:00-16:00',
-    location: '线上会议',
-    participants: 120,
-    status: '进行中',
-    correctRate: 0.82,
-    totalAnswers: 150
+    lid: 1,
+    name: 'AI与未来教育变革趋势分析',
+    speaker: 'zhangsan',
+    start_time: '2025-07-15 14:00',
+    fids: [101, 102],
+    status: '进行中'
   },
   {
-    id: 2,
-    title: '大数据分析实战技巧与应用',
-    date: '2025-06-28',
-    time: '10:00-12:00',
-    location: '科技大厦B座201',
-    participants: 85,
-    status: '已结束',
-    correctRate: 0.76,
-    totalAnswers: 110
+    lid: 2,
+    name: '大数据分析实战技巧与应用',
+    speaker: 'lisi',
+    start_time: '2025-06-28 10:00',
+    fids: [103],
+    status: '已结束'
   },
   {
-    id: 3,
-    title: '高效PPT设计与演讲技巧',
-    date: '2025-05-15',
-    time: '13:30-15:30',
-    location: '创新中心报告厅',
-    participants: 92,
-    status: '已结束',
-    correctRate: 0.68,
-    totalAnswers: 98
+    lid: 3,
+    name: '高效PPT设计与演讲技巧',
+    speaker: 'wangwu',
+    start_time: '2025-05-15 13:30',
+    fids: [104, 105],
+    status: '已结束'
   },
   {
-    id: 4,
-    title: '云计算架构设计与实践',
-    date: '2025-08-22',
-    time: '09:00-11:30',
-    location: '线上会议',
-    participants: 67,
-    status: '即将开始',
-    correctRate: null,
-    totalAnswers: 0
+    lid: 4,
+    name: '云计算架构设计与实践',
+    speaker: 'zhaoliu',
+    start_time: '2025-08-22 09:00',
+    fids: [],
+    status: '即将开始'
   },
   {
-    id: 5,
-    title: '前端工程化与性能优化',
-    date: '2025-08-05',
-    time: '15:00-17:00',
-    location: '研发中心会议室',
-    participants: 45,
-    status: '即将开始',
-    correctRate: null,
-    totalAnswers: 0
-  },
-  {
-    id: 6,
-    title: '区块链技术应用实践',
-    date: '2025-07-10',
-    time: '13:00-15:00',
-    location: '科技园区A栋101',
-    participants: 78,
-    status: '进行中',
-    correctRate: 0.88,
-    totalAnswers: 120
-  },
+    lid: 5,
+    name: '前端工程化与性能优化',
+    speaker: 'sunqi',
+    start_time: '2025-08-05 15:00',
+    fids: [106],
+    status: '即将开始'
+  }
 ]);
 
 const filteredLectures = computed(() => {
   const filtered = lectures.value.filter(l => l.status === '进行中');
   return filtered.sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
+    const dateA = new Date(a.start_time).getTime();
+    const dateB = new Date(b.start_time).getTime();
     return sortOption.value === 'timeAsc' ? dateA - dateB : dateB - dateA;
   });
 });
@@ -231,7 +201,7 @@ const joinLecture = (lecture) => {
   router.push({
     path: '/lecture-detail',
     query: {
-      id: lecture.id,
+      id: lecture.lid,
       lectures: JSON.stringify(lectures.value)
     }
   });
