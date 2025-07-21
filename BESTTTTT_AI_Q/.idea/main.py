@@ -74,24 +74,11 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "Content-Type": "application/json"
     }
     prompt = (
- "你是一个严谨的PPT内容分析专家，请严格按以下要求处理用户提供的文本：\n"
-    + "\n".join(text_list) +
-    "\n\n**任务要求：**"
-    "\n1. **总结规则：**"
-    "\n   - 用最简练语言概括核心内容，删除所有冗余描述"
-    "\n   - 必须聚焦主旨，禁止添加个人观点"
-    "\n   - 严格控制在120-150字之间（超出即失效）"
-    "\n2. **问题生成规则：**"
-    "\n   - 基于总结内容提出3个关键问题，覆盖主要知识点"
-    "\n   - 每个问题必须满足："
-    "\n     * 选项A/B/C/D中仅1个正确（明确标注正确答案）"
-    "\n     * 干扰项需具备迷惑性（例如：部分正确表述/相关概念混淆）"
-    "\n     * 禁止出现『以上都对』类模糊选项"
-    "\n   - 问题难度梯度：1基础概念→2原理分析→3应用推论"
-    "\n3. **容错机制：**"
-    "\n   - 若文本存在矛盾/歧义，在总结中标注『存疑点』"
-    "\n   - 无法生成合格问题时返回『问题生成失败』"
-    "\n\n**输出格式（必须严格遵守）：**"
+        "你是一个智能助理。请根据以下内容：\n"
+        + "\n".join(text_list) +
+        "\n\n1. 只做简明扼要的总结（不超过150字）。\n"
+        "2. 针对总结内容，提出3个关键问题，每个问题给出4个选项（只有一个正确，其余为干扰项）。\n"
+        "3. 每个问题请在选项后面输出“正确答案：A/B/C/D”和“解析：...”\n"
         "输出格式要求：\n"
         "总结：...\n"
         "问题1：...\n"
@@ -100,10 +87,12 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "C. ...\n"
         "D. ...\n"
         "正确答案：A\n"
+        "解析：...\n"
         "问题2：...\n"
         "A. ...\n"
         "...\n"
         "正确答案：B\n"
+        "解析：...\n"
     )
     data = {
         "model": "chatglm_std",
@@ -123,6 +112,7 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
     question_texts = []
     option_texts = []
     answer_indices = []
+    explanations = []
     current_options = []
     for line in lines:
         line = line.strip()
@@ -130,7 +120,6 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
             continue
         if line.startswith('总结：') or line.startswith('总结'):
             summary = line.replace('总结：', '').replace('总结', '').strip()
-        # 兼容多种“问题”前缀，包括加粗、冒号、点号、空格、星号等
         elif re.match(r'^(\*+)?[#\s]*问题[1-9][0-9]*([：:：. ]|\*+)', line):
             if current_options:
                 option_texts.extend(current_options)
@@ -145,14 +134,19 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
             if match:
                 idx = ord(match.group(0).upper()) - ord('A')
                 answer_indices.append(str(idx))
+        elif line.startswith('解析：') or line.startswith('解析:'):
+            explanations.append(line.replace('解析：', '').replace('解析:', '').strip())
     if current_options:
         option_texts.extend(current_options)
     while len(answer_indices) < len(question_texts):
         answer_indices.append('0')
+    while len(explanations) < len(question_texts):
+        explanations.append('')
     questions_str = '\n'.join(question_texts)
     options_str = '\n'.join(option_texts)
     answer_indices_str = '\n'.join(answer_indices)
-    return {'summary': summary, 'questions_str': questions_str, 'options_str': options_str, 'answer_indices_str': answer_indices_str}
+    explanations_str = '\n'.join(explanations)
+    return {'summary': summary, 'questions_str': questions_str, 'options_str': options_str, 'answer_indices_str': answer_indices_str, 'explanations_str': explanations_str}
 
 # 用法示例
 def test_summarize_and_generate_questions(ppt_path, glm_api_key):
@@ -171,6 +165,8 @@ def test_summarize_and_generate_questions(ppt_path, glm_api_key):
     print(result['options_str'])
     print("答案索引列表：")
     print(result['answer_indices_str'])
+    print("解析列表：")
+    print(result['explanations_str'])
 
 def ppt_to_images(ppt_path, output_dir=None):
     """
@@ -256,8 +252,8 @@ if __name__ == "__main__":
     # print(audio_text) 
 
     # 新增：测试 summarize_and_generate_questions
-    # glm_api_key = "a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh"  # TODO: 替换为你的智谱API Key
-    # test_summarize_and_generate_questions(ppt_path, glm_api_key)
+    glm_api_key = "a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh"  # TODO: 替换为你的智谱API Key
+    test_summarize_and_generate_questions(ppt_path, glm_api_key)
 
     # 新增：测试 ppt_to_images_with_office
-    ppt_to_images_with_office(ppt_path) 
+    # ppt_to_images_with_office(ppt_path) 
