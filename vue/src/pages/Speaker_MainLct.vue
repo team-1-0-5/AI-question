@@ -1,9 +1,15 @@
 <template>
   <div class="container">
+    <div>
+      <el-button type="text" @click="$router.push('/')" icon="ArrowLeft" style="font-size:1.08rem;color:#1565c0;">
+        返回首页
+      </el-button>
+    </div>
     <el-tabs type="border-card" class="custom-tabs">
       <!-- 主要信息选项卡 -->
       <el-tab-pane label="基本信息">
         <div class="info-container">
+
           <div class="main-info">
             <div class="info-header">
               <span class="speaker-avatar">
@@ -22,6 +28,9 @@
               <el-statistic title="开始时间" :value="presentation.startTime" class="stat-blue" />
             </div>
             <p class="description main-desc">{{ presentation.description }}</p>
+            <div style="margin-top: 28px; text-align: right;">
+              <el-button type="danger" @click="endPresentation">结束演讲</el-button>
+            </div>
           </div>
 
           <div class="courseware-section">
@@ -193,6 +202,13 @@ const handleUploadSuccess = (response) => {
     size: response.size,
     uploadTime: new Date().toLocaleTimeString()
   })
+}
+
+// 结束演讲按钮事件
+function endPresentation() {
+  // TODO: 可调用后端接口或弹窗确认
+  window.$message?.success('演讲已结束！')
+  // 这里可补充跳转或其他逻辑
 }
 </script>
 
