@@ -7,6 +7,9 @@ class User(Model):
     password = fields.CharField(max_length=255)
     user_type = fields.IntField()
 
+    class Meta:
+        table = "user"
+
 
 class File(Model):
     file_id = fields.IntField(pk=True)

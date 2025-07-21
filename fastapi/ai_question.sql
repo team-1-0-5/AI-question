@@ -11,7 +11,7 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 16/07/2025 21:07:22
+ Date: 21/07/2025 21:51:31
 */
 
 SET NAMES utf8mb4;
@@ -55,15 +55,12 @@ CREATE TABLE `file`  (
   `file_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `file_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   PRIMARY KEY (`file_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 18 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of file
 -- ----------------------------
-INSERT INTO `file` VALUES (12, 'uploads\\123123_新建 文本文档 (2).txt', 'courseware');
-INSERT INTO `file` VALUES (13, 'uploads\\123123_新建 文本文档 (2).txt', 'courseware');
-INSERT INTO `file` VALUES (14, 'uploads\\123123_1.txt', 'courseware');
-INSERT INTO `file` VALUES (15, 'uploads\\123123_1.txt', 'courseware');
+INSERT INTO `file` VALUES (17, 'uploads\\123123_1.txt_1752671980.4293556', 'courseware');
 
 -- ----------------------------
 -- Table structure for join_speech
@@ -114,16 +111,20 @@ CREATE TABLE `question_user`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `speech`;
 CREATE TABLE `speech`  (
-  `speech_id` int NOT NULL,
+  `speech_id` int NOT NULL AUTO_INCREMENT,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `begin_time` datetime NOT NULL,
   PRIMARY KEY (`speech_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of speech
 -- ----------------------------
+INSERT INTO `speech` VALUES (2, '一个演讲', '简介', '2022-05-25 20:00:00');
+INSERT INTO `speech` VALUES (3, '一个演讲', '简介', '2022-05-25 20:00:00');
+INSERT INTO `speech` VALUES (4, '一个演讲', '简介', '2022-05-25 20:00:00');
+INSERT INTO `speech` VALUES (5, '一个演讲', '简介', '2022-05-25 20:00:00');
 
 -- ----------------------------
 -- Table structure for speech_file
@@ -158,17 +159,18 @@ CREATE TABLE `speech_question`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user`  (
-  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `user_id` int NOT NULL AUTO_INCREMENT,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `user_type` int NOT NULL,
+  `user_type` int NOT NULL COMMENT '0听众，1演讲者',
   PRIMARY KEY (`user_id` DESC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user
 -- ----------------------------
-INSERT INTO `user` VALUES ('1', '1231', 'hhh', 1);
+INSERT INTO `user` VALUES (2, '123456', 'test', 0);
+INSERT INTO `user` VALUES (1, '1231', 'hhh', 1);
 
 -- ----------------------------
 -- Table structure for user_file
@@ -183,7 +185,6 @@ CREATE TABLE `user_file`  (
 -- ----------------------------
 -- Records of user_file
 -- ----------------------------
-INSERT INTO `user_file` VALUES (123123, 12);
-INSERT INTO `user_file` VALUES (123123, 15);
+INSERT INTO `user_file` VALUES (123123, 17);
 
 SET FOREIGN_KEY_CHECKS = 1;

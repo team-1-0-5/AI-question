@@ -137,5 +137,50 @@ async def get_combined_info(fid: int = Form(...), uid: int = Form(...)):
     }
 
 
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    user = await User.get_or_none(username=username)
+
+    if not user or user.password != password:
+        return {"res": False}
+
+    # 将数字类型转换为中文描述
+    user_type_str = "听众" if user.user_type == 0 else "演讲者"
+
+    return {
+        "res": True,
+        "uid": user.user_id,
+        "type": user_type_str
+    }
+
+
+# 注册接口
+@app.post("/sign")
+async def signup(username: str = Form(...), password: str = Form(...), user_type: str = Form(...)):
+    # 验证用户类型输入
+    if user_type not in ["听众", "演讲者"]:
+        raise HTTPException(
+            status_code=400,
+            detail="用户类型必须是'听众'或'演讲者'"
+        )
+
+    # 检查用户名是否已存在
+    exists = await User.exists(username=username)
+    if exists:
+        return {"res": False}
+
+    # 转换用户类型为数字
+    user_type_val = 0 if user_type == "听众" else 1
+
+    # 创建新用户
+    await User.create(
+        username=username,
+        password=password,
+        user_type=user_type_val
+    )
+
+    return {"res": True}
+
+
 if __name__ == '__main__':
     uvicorn.run(app)
