@@ -24,3 +24,13 @@ class UserFile(Model):
 
     class Meta:
         table = "user_file"
+
+
+class Speech(Model):
+    speech_id = fields.IntField(pk=True)
+    title = fields.CharField(max_length=255)
+    description = fields.CharField(max_length=255)
+    begin_time = fields.DatetimeField()
+
+    class Meta:
+        table = "speech"
