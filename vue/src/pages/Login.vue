@@ -31,6 +31,7 @@
 </template>
 
 <script>
+import axios from "@/utils/api.js";
 export default {
   data() {
     return {
@@ -39,11 +40,23 @@ export default {
     }
   },
   methods: {
-    handleLogin() {
-      console.log('登录信息:', {
-        username: this.username,
-        password: this.password
-      })
+    async handleLogin() {
+      try {
+        const res = await axios.post('/login', {
+          username: this.username,
+          password: this.password
+        })
+        if (res.data && res.data.res) {
+          // 登录成功，保存uid和type到localStorage
+          localStorage.setItem('uid', res.data.uid)
+          localStorage.setItem('type', res.data.type)
+          this.$router.push('/')
+        } else {
+          this.$message?.error('用户名或密码错误')
+        }
+      } catch (e) {
+        this.$message?.error('登录失败，请重试')
+      }
     }
   }
 }

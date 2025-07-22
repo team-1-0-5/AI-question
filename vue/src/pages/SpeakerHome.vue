@@ -32,86 +32,51 @@
           </select>
         </div>
         <ul class="lecture-grid">
-          <li
-            v-for="lecture in sortedLectures"
-            :key="lecture.lid"
-            class="lecture-card"
-            :class="getStatusClass(lecture.status)"
-            @click="handleLectureClick(lecture)"
-            :style="lecture.status === '进行中' ? 'cursor:pointer;' : ''"
-          >
-            <div class="status-indicator" :class="getStatusClass(lecture.status)"></div>
-            <div class="card-content">
-              <h3 class="lecture-title">{{ lecture.name }}</h3>
-              <div class="lecture-info">
-                <div class="info-row">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  <span>{{ formatDate(lecture.start_time) }}</span>
-                </div>
-                <div class="info-row">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                  <span>演讲者：{{ lecture.speaker }}</span>
-                </div>
-                <div class="info-row">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="4" y="4" width="16" height="16" rx="2"/>
-                    <path d="M8 8h8v8H8z"/>
-                  </svg>
-                  <span>文件数：{{ lecture.fids.length }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="lecture-meta">
-              <span :class="['status', getStatusClass(lecture.status)]">
-                {{ lecture.status }}
-              </span>
-            </div>
-            <div class="card-hover-content">
-              <button class="action-btn" @click.stop="toggleMenu(lecture.lid)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <circle cx="12" cy="5" r="1"></circle>
-                  <circle cx="12" cy="19" r="1"></circle>
+        <li
+          v-for="lecture in sortedLectures"
+          :key="lecture.lid"
+          class="lecture-card"
+          :class="getStatusClass(lecture.status) || ''"
+          @click="handleLectureClick(lecture)"
+          :style="lecture.status === '进行中' ? 'cursor:pointer;' : ''"
+        >
+          <div class="status-indicator" :class="getStatusClass(lecture.status) || ''"></div>
+          <div class="card-content">
+            <h3 class="lecture-title">{{ lecture.name }}</h3>
+            <div class="lecture-info">
+              <div class="info-row">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-              </button>
-              <div v-if="activeMenu === lecture.lid" class="action-menu">
-                <button @click="editLecture(lecture)">编辑</button>
-                <button @click="shareLecture(lecture)">分享</button>
-                <button @click="deleteLecture(lecture)" class="delete">删除</button>
+                <span>{{ formatDate(lecture.start_time) }}</span>
+              </div>
+              <div class="info-row">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <span>演讲者：{{ lecture.speaker }}</span>
+              </div>
+              <div class="info-row">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="4" y="4" width="16" height="16" rx="2"/>
+                  <path d="M8 8h8v8H8z"/>
+                </svg>
+                <span>文件数：{{ lecture.fids.length }}</span>
               </div>
             </div>
-          </li>
+          </div>
+          <div class="lecture-meta">
+            <span :class="['status', getStatusClass(lecture.status) || '']">
+            {{ lecture.status }}
+            </span>
+          </div>
+        </li>
         </ul>
       </div>
     </section>
-
-    <!-- 数据总览页面 -->
-    <section v-else-if="activeTab === 1" class="overview-section">
-      <div class="overview-header">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
-          <rect x="3" y="12" width="3" height="8" rx="1"/>
-          <rect x="8" y="8" width="3" height="12" rx="1"/>
-          <rect x="13" y="4" width="3" height="16" rx="1"/>
-          <rect x="18" y="16" width="3" height="4" rx="1"/>
-        </svg>
-        <span class="overview-title">最近演讲答题数据总览</span>
-      </div>
-      <div class="overview-stats">
-        <div class="stat-item">
-          <div class="stat-label">总答题数</div>
-          <div class="stat-value">{{ totalAnswers }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">平均正确率</div>
-          <div class="stat-value">{{ Math.round(avgCorrectRate * 100) }}%</div>
-        </div>
-      </div>
+    <section v-if="activeTab === 1" class="overview-section">
       <div class="overview-chart">
         <div class="chart-title">最近5场讲座正确率变化</div>
         <div class="chart-container" style="position:relative;">
@@ -156,7 +121,7 @@
     </section>
 
     <!-- 个人中心占位 -->
-    <section v-else class="center-section">
+    <section v-if="activeTab === 2"  class="center-section">
       <div class="center-placeholder">个人中心功能开发中...</div>
     </section>
 
@@ -166,7 +131,17 @@
 
 <script setup lang="ts">
 // 折线图tooltip
-import { ref as vueRef } from 'vue';
+import { ref as vueRef, onMounted } from 'vue';
+import axios from '@/utils/api.js';
+
+interface Lecture {
+  lid: number;
+  name: string;
+  speaker: string;
+  start_time: string;
+  fids: number[];
+  status?: string;
+}
 const tooltip = vueRef({ visible: false, title: '', x: 0, y: 0 });
 function showTooltip(i: number, evt: MouseEvent) {
   tooltip.value.visible = true;
@@ -197,48 +172,26 @@ const sortOption = ref('default');
 const router = useRouter();
 const activeTab = ref(0); // 0: 讲座列表, 1: 数据总览, 2: 个人中心
 
-const lectures = ref([
-  {
-    lid: 1,
-    name: 'AI与未来教育变革趋势分析',
-    speaker: 'zhangsan',
-    start_time: '2025-07-15 14:00',
-    fids: [101, 102],
-    status: '进行中'
-  },
-  {
-    lid: 2,
-    name: '大数据分析实战技巧与应用',
-    speaker: 'lisi',
-    start_time: '2025-06-28 10:00',
-    fids: [103],
-    status: '已结束'
-  },
-  {
-    lid: 3,
-    name: '高效PPT设计与演讲技巧',
-    speaker: 'wangwu',
-    start_time: '2025-05-15 13:30',
-    fids: [104, 105],
-    status: '已结束'
-  },
-  {
-    lid: 4,
-    name: '云计算架构设计与实践',
-    speaker: 'zhaoliu',
-    start_time: '2025-08-22 09:00',
-    fids: [],
-    status: '即将开始'
-  },
-  {
-    lid: 5,
-    name: '前端工程化与性能优化',
-    speaker: 'sunqi',
-    start_time: '2025-08-05 15:00',
-    fids: [106],
-    status: '即将开始'
+const lectures = ref<Lecture[]>([])
+// Removed the incorrect declaration
+
+// 页面加载时自动获取该用户所有演讲信息
+onMounted(async () => {
+  const uid = localStorage.getItem('uid');
+  try {
+    const res = await axios.post('/all_lecture', uid ? { uid } : {});
+    // 返回参数为data列表
+    if (res && Array.isArray(res.data)) {
+      lectures.value = res.data;
+    } else if (res && Array.isArray(res)) {
+      lectures.value = res;
+    } else {
+      lectures.value = [];
+    }
+  } catch (e) {
+    lectures.value = [];
   }
-])
+});
 
 // 计算排序后的讲座列表
 const sortedLectures = computed(() => {
@@ -294,13 +247,11 @@ function onTabChange(idx: number) {
   activeTab.value = idx;
 }
 
-function getStatusClass(status: string) {
-  switch(status) {
-    case '进行中': return 'active';
-    case '已结束': return 'ended';
-    case '即将开始': return 'upcoming';
-    default: return '';
-  }
+function getStatusClass(status: string | undefined): string {
+  if (status === '进行中') return 'active';
+  if (status === '已结束') return 'ended';
+  if (status === '即将开始') return 'upcoming';
+  return '';
 }
 
 function toggleMenu(id: number) {

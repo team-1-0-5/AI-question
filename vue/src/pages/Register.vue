@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import axios from '@/api.js'
 export default {
   data() {
     return {
@@ -59,12 +60,22 @@ export default {
     }
   },
   methods: {
-    handleRegister() {
-      console.log('注册信息:', {
-        username: this.username,
-        password: this.password,
-        userType: this.userType
-      })
+    async handleRegister() {
+      try {
+        const res = await axios.post('/sign', {
+          username: this.username,
+          password: this.password,
+          type: this.userType
+        })
+        if (res.data && res.data.res) {
+          this.$message?.success('注册成功，请登录')
+          this.$router.push('/login')
+        } else {
+          this.$message?.error('注册失败，用户名已存在')
+        }
+      } catch (e) {
+        this.$message?.error('注册失败，请重试')
+      }
     }
   }
 }

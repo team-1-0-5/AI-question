@@ -26,8 +26,11 @@
         <label>课件上传（可多选）</label>
         <input type="file" multiple @change="onFilesChange" accept=".ppt,.pptx,.pdf,.mp3,.wav,.mp4" />
         <ul v-if="fileList.length" class="file-list">
-          <li v-for="(file, idx) in fileList" :key="file.name+file.size">
+          <li v-for="(file, idx) in fileList" :key="file.fid || file.name">
             <span>{{ file.name }}</span>
+            <span v-if="file.status === 'pending'" style="color:#2196F3;">上传中...</span>
+            <span v-else-if="file.status === 'success'" style="color:#4CAF50;">上传成功</span>
+            <span v-else style="color:#F44336;">上传失败</span>
             <button type="button" @click="removeFile(idx)">移除</button>
           </li>
         </ul>
@@ -36,43 +39,104 @@
         <label for="startTime">开始时间</label>
         <input id="startTime" v-model="startTime" type="datetime-local" />
       </div>
+      <div class="form-group">
       <button class="submit-btn" type="submit" :disabled="!lectureName.trim() || submitting">
         {{ submitting ? '提交中...' : '创建演讲' }}
       </button>
+      </div>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import axios from '@/utils/api.js';
 
 const lectureName = ref('');
 const lectureDesc = ref('');
-const fileList = ref<File[]>([]);
+interface UploadedFile {
+  name: string;
+  fid?: number;
+  status: 'pending' | 'success' | 'fail';
+}
+const fileList = ref<UploadedFile[]>([]);
 const startTime = ref('');
 const submitting = ref(false);
 
-function onFilesChange(e: Event) {
+async function onFilesChange(e: Event) {
   const files = (e.target as HTMLInputElement).files;
-  if (files) {
-    fileList.value = Array.from(files);
+  console.log('文件选择事件触发，files:', files);
+  let uid = localStorage.getItem('uid');
+  if(!uid){
+    uid = '1'; // 如果没有登录，使用默认用户ID
   }
+  if (files && uid) {
+    for (const file of Array.from(files)) {
+      // if (fileList.value.some(f => f.name === file.name)) continue;
+      // 先添加到列表，状态为 pending
+      const newFile: UploadedFile = { name: file.name, status: 'pending' };
+      fileList.value.push(newFile);
+      fileList.value = [...fileList.value];
+      console.log('已添加到 fileList:', fileList.value);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('uid', uid);
+      formData.append('type', 'courseware');
+      try {
+        const res = await axios.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res && res.data && res.data.fid) {
+          const idx = fileList.value.findIndex(f => f.name === file.name && f.status === 'pending');
+          if (idx !== -1) {
+            fileList.value[idx].fid = res.data.fid;
+            fileList.value[idx].status = 'success';
+            fileList.value = [...fileList.value];
+            console.log('上传成功，更新 fileList:', fileList.value);
+          }
+        } else {
+          const idx = fileList.value.findIndex(f => f.name === file.name && f.status === 'pending');
+          if (idx !== -1) fileList.value[idx].status = 'fail';
+          fileList.value = [...fileList.value];
+          console.log('上传失败，更新 fileList:', fileList.value);
+        }
+      } catch {
+        const idx = fileList.value.findIndex(f => f.name === file.name && f.status === 'pending');
+        if (idx !== -1) fileList.value[idx].status = 'fail';
+        fileList.value = [...fileList.value];
+        console.log('上传异常，更新 fileList:', fileList.value);
+      }
+    }
+  }
+  console.log('最终 fileList:', fileList.value);
 }
 function removeFile(idx: number) {
   fileList.value.splice(idx, 1);
 }
-function onSubmit() {
+async function onSubmit() {
   if (!lectureName.value.trim()) return;
   submitting.value = true;
-  setTimeout(() => {
-    alert('演讲创建成功！\n' +
-      `名称: ${lectureName.value}\n` +
-      (lectureDesc.value ? `简介: ${lectureDesc.value}\n` : '') +
-      (fileList.value.length ? `课件: ${fileList.value.map(f=>f.name).join(', ')}\n` : '') +
-      (startTime.value ? `开始时间: ${startTime.value}` : '')
-    );
-    submitting.value = false;
-  }, 1200);
+  const uid = localStorage.getItem('uid');
+  const file_ids = fileList.value.filter(f => f.status === 'success' && f.fid).map(f => f.fid);
+  try {
+    const payload = {
+      name: lectureName.value,
+      uid: uid,
+      describe: lectureDesc.value,
+      file_ids,
+      start_time: startTime.value
+    };
+    const res = await axios.post('/lecture_create', payload);
+    if (res && res.data && res.data.lid) {
+      alert('演讲创建成功！ID: ' + res.data.lid);
+      history.back();
+    } else {
+      alert('演讲创建失败，请重试');
+    }
+  } catch (e) {
+    alert('创建失败，请检查网络或稍后再试');
+  }
+  submitting.value = false;
 }
 function goBack() {
   history.back();
