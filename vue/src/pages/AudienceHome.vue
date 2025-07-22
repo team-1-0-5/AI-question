@@ -90,6 +90,7 @@
         <div class="profile-name">听众用户</div>
         <div class="profile-desc">个人中心功能开发中...</div>
       </div>
+      <button class="logout-btn" @click="logout">退出登录</button>
     </section>
 
     <nav class="bottom-tabs">
@@ -110,6 +111,11 @@
 </template>
 
 <script setup>
+const logout = () => {
+  localStorage.removeItem('uid');
+  localStorage.removeItem('type');
+  router.replace('/login');
+}
 const activeTab = ref('home');
 
 // 历史数据假数据
@@ -280,6 +286,23 @@ const goToProfile = () => {
 .profile-desc {
   color: #888;
   font-size: 1.05rem;
+}
+
+.logout-btn {
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #f44336 0%, #e57373 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.9rem 2.5rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(244,67,54,0.13);
+  transition: all 0.2s;
+}
+.logout-btn:hover {
+  background: #d32f2f;
 }
 /* 延续演讲者页面样式并优化 */
 .audience-home {

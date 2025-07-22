@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import axios from '@/api.js'
+import axios from "@/utils/api.js"
 export default {
   data() {
     return {
@@ -62,12 +62,14 @@ export default {
   methods: {
     async handleRegister() {
       try {
-        const res = await axios.post('/sign', {
-          username: this.username,
-          password: this.password,
-          type: this.userType
-        })
-        if (res.data && res.data.res) {
+        const params = new URLSearchParams();
+        params.append('username', this.username);
+        params.append('password', this.password);
+        params.append('user_type', this.userType); // 修正参数名为 user_type
+        const res = await axios.post('/sign', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        if (res.res) { // 直接用 res.res
           this.$message?.success('注册成功，请登录')
           this.$router.push('/login')
         } else {

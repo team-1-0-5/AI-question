@@ -135,13 +135,13 @@ export default {
     prevQuestion() {
       if (this.currentQuestionIndex > 0) {
         this.currentQuestionIndex--;
-        this.selectedOption = this.answers[this.currentQuestionIndex] || null;
+        this.selectedOption = this.answers[this.currentQuestionIndex] !== undefined ? this.answers[this.currentQuestionIndex] : null;
       }
     },
     nextQuestion() {
       if (this.currentQuestionIndex < this.questions.length - 1) {
         this.currentQuestionIndex++;
-        this.selectedOption = this.answers[this.currentQuestionIndex] || null;
+        this.selectedOption = this.answers[this.currentQuestionIndex] !== undefined ? this.answers[this.currentQuestionIndex] : null;
       }
     },
     submitAnswers() {
@@ -153,7 +153,8 @@ export default {
     },
     jumpToQuestion(index) {
       if (index >= 0 && index < this.questions.length) {
-        this.currentQuestionIndex = index
+        this.currentQuestionIndex = index;
+        this.selectedOption = this.answers[this.currentQuestionIndex] !== undefined ? this.answers[this.currentQuestionIndex] : null;
       }
     }
   }

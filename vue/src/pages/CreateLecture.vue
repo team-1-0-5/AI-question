@@ -86,10 +86,10 @@ async function onFilesChange(e: Event) {
         const res = await axios.post('/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        if (res && res.data && res.data.fid) {
+        if (res && res.fid) {
           const idx = fileList.value.findIndex(f => f.name === file.name && f.status === 'pending');
           if (idx !== -1) {
-            fileList.value[idx].fid = res.data.fid;
+            fileList.value[idx].fid = res.fid;
             fileList.value[idx].status = 'success';
             fileList.value = [...fileList.value];
             console.log('上传成功，更新 fileList:', fileList.value);
@@ -119,16 +119,17 @@ async function onSubmit() {
   const uid = localStorage.getItem('uid');
   const file_ids = fileList.value.filter(f => f.status === 'success' && f.fid).map(f => f.fid);
   try {
-    const payload = {
-      name: lectureName.value,
-      uid: uid,
-      describe: lectureDesc.value,
-      file_ids,
-      start_time: startTime.value
-    };
-    const res = await axios.post('/lecture_create', payload);
-    if (res && res.data && res.data.lid) {
-      alert('演讲创建成功！ID: ' + res.data.lid);
+    const params = new URLSearchParams();
+    params.append('name', lectureName.value);
+    params.append('uid', uid || '');
+    params.append('describe', lectureDesc.value);
+    params.append('start_time', startTime.value);
+    file_ids.forEach(fid => params.append('file_ids', String(fid)));
+    const res = await axios.post('/speaker/lecture_create', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    if (res && res.lid) {
+      alert('演讲创建成功！ID: ' + res.lid);
       history.back();
     } else {
       alert('演讲创建失败，请重试');

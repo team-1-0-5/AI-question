@@ -34,17 +34,38 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import axios from '@/utils/api.js'
 const router = useRouter()
+const route = useRoute()
 const presentation = ref({
   title: "即将开始的演讲",
   participants: 0,
   startTime: "2025-07-22 09:00",
   description: "请在演讲开始前准备好课件和内容。"
 })
-function startPresentation() {
-  // 跳转到主讲页面
-  router.push('/speaker-main-lct')
+async function startPresentation() {
+  // 获取 lid（优先 query.lid，其次 params.lid）
+  const lid = Number(route.query.lid) || Number(route.params.lid)
+  if (!lid) {
+    window.$message?.error('未获取到演讲ID')
+    return
+  }
+  const params = new URLSearchParams()
+  params.append('lid', String(lid))
+  try {
+    const res = await axios.post('/speaker/start_lecture', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    if (res && res.res) {
+      window.$message?.success('演讲已开始！')
+      router.push({ path: '/speaker-main-lct', query: { lid } })
+    } else {
+      window.$message?.error('开始演讲失败')
+    }
+  } catch (e) {
+    window.$message?.error('开始演讲异常')
+  }
 }
 </script>
 

@@ -92,23 +92,33 @@ const router = createRouter({
 
 // 全局前置守卫：访问/时自动检测登录状态
 router.beforeEach((to, from, next) => {
+  const uid = localStorage.getItem('uid');
+  const type = localStorage.getItem('type');
+  // 访问登录/注册页，已登录则自动跳转主页
+  if ((to.path === '/login' || to.path === '/register') && uid && type) {
+    if (type === '演讲者') {
+      next('/speaker-home');
+    } else if (type === '听众') {
+      next('/audience-home');
+    } else {
+      next();
+    }
+    return;
+  }
+  // 访问根路径，根据登录状态和类型跳转
   if (to.path === '/') {
-    const uid = localStorage.getItem('uid');
-    const type = localStorage.getItem('type');
     if (!uid || !type) {
       next('/login');
+    } else if (type === '演讲者') {
+      next('/speaker-home');
+    } else if (type === '听众') {
+      next('/audience-home');
     } else {
-      if (type === '演讲者') {
-        next({ path: '/' }); // 保持在演讲者主页
-      } else if (type === '听众') {
-        next({ path: '/audience-home' });
-      } else {
-        next('/login');
-      }
+      next('/login');
     }
-  } else {
-    next();
+    return;
   }
+  next();
 });
 
 export default router;

@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div>
-      <el-button type="text" @click="$router.push('/')" icon="ArrowLeft" style="font-size:1.08rem;color:#1565c0;">
+      <el-button type="link" @click="$router.push('/')" icon="ArrowLeft" style="font-size:1.08rem;color:#1565c0;">
         返回首页
       </el-button>
     </div>
@@ -25,7 +25,7 @@
             </div>
             <div class="stats">
               <el-statistic title="参与人数" :value="presentation.participants" class="stat-green" />
-              <el-statistic title="开始时间" :value="presentation.startTime" class="stat-blue" />
+              <el-statistic title="开始时间" :value="new Date(presentation.startTime)" class="stat-blue" />
             </div>
             <p class="description main-desc">{{ presentation.description }}</p>
             <div style="margin-top: 28px; text-align: right;">
@@ -138,6 +138,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import axios from '@/utils/api.js'
+import { useRoute } from 'vue-router'
+
+// 获取路由参数 lid
+const route = useRoute();
+const lid = computed(() => Number(route.query.lid) || Number(route.params.lid) || 1);
 
 // 演示数据
 const presentation = ref({
@@ -146,15 +152,15 @@ const presentation = ref({
   startTime: "2024-03-20 14:30",
   description: "本次演讲将深入探讨AI领域的最新发展...",
   files: [
-    { name: "PPT-Chapter1.pdf", size: "2.4MB", uploadTime: "14:25" },
-    { name: "Case-Study.pdf", size: "1.8MB", uploadTime: "14:28" }
+    { fid:1, name: "PPT-Chapter1.pdf", size: "2.4MB", uploadTime: "14:25" },
+    { fid:2, name: "Case-Study.pdf", size: "1.8MB", uploadTime: "14:28" }
   ]
 })
 
 // PPT控制
 const currentPage = ref(1)
-const totalPages = 15
-const currentSlide = computed(() => `/slides/slide-${currentPage.value}.jpg`)
+const totalPages = ref(1)
+const currentSlide = ref('') // 用于展示ppt图片
 const selectedFile = ref('')
 
 // 翻页跳转输入
@@ -184,6 +190,61 @@ watch(currentPage, (val) => {
   endPage.value = val
 })
 
+// 切换课件时自动请求第一页并获取总页数和图片
+watch(selectedFile, () => {
+  if (selectedFile.value) {
+    currentPage.value = 1;
+    showPPT(1);
+  }
+});
+// 翻页时请求对应页图片
+watch(currentPage, (val) => {
+  endPage.value = val;
+  if (selectedFile.value) {
+    showPPT(val);
+  }
+});
+
+// PPT展示接口，支持传入页码
+const showPPT = async (page = currentPage.value) => {
+  console.log(`请求PPT页码: ${page}, 当前课件: ${selectedFile.value},lid: ${lid.value}`);
+
+  if (!lid.value || !selectedFile.value || !page) return;
+  const fileObj = presentation.value.files.find(f => f.name === selectedFile.value);
+  const fid = fileObj && fileObj.fid ? fileObj.fid : undefined;
+  if (!fid) return;
+  const params = new URLSearchParams();
+  params.append('lid', String(lid.value));
+  params.append('fid', String(fid));
+  params.append('page', String(page));
+  try {
+    const res = await axios.post('/speaker/show_ppt', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    if (res && res.res) {
+      if (res.page_num) totalPages.value = res.page_num;
+      if (res.pic_fid) {
+        // 假设后端有下载接口
+        currentSlide.value = `/download?fid=${res.pic_fid}&uid=${localStorage.getItem('uid') || ''}`;
+      }
+    } else {
+      window.$message?.error('PPT展示失败');
+    }
+  } catch (e) {
+    window.$message?.error('PPT展示异常');
+  }
+}
+
+const prevSlide = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+}
+const nextSlide = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+}
 // 排名数据
 const rankingData = ref([
   { rank: 1, name: "张三", accuracy: 90 },
@@ -191,10 +252,29 @@ const rankingData = ref([
   { rank: 3, name: "王五", accuracy: 70 }
 ])
 
-const prevSlide = () => currentPage.value--
-const nextSlide = () => currentPage.value++
-const sendQuiz = () => {
-  console.log(`发送题目：第${startPage.value}-${endPage.value}页`)
+const sendQuiz = async () => {
+  let fid = undefined;
+  if (selectedFile.value) {
+    const fileObj = presentation.value.files.find(f => f.name === selectedFile.value);
+    if (fileObj && fileObj.fid) fid = fileObj.fid;
+  }
+  const params = new URLSearchParams();
+  params.append('lid', String(lid.value));
+  if (fid) params.append('fid', String(fid));
+  if (startPage.value) params.append('start_page', String(startPage.value));
+  if (endPage.value) params.append('end_page', String(endPage.value));
+  try {
+    const res = await axios.post('/speaker/post_answer', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    if (res && res.res) {
+      window.$message?.success('题目发送成功！');
+    } else {
+      window.$message?.error('题目发送失败');
+    }
+  } catch (e) {
+    window.$message?.error('题目发送异常');
+  }
 }
 const handleUploadSuccess = (response) => {
   presentation.value.files.push({
@@ -205,10 +285,22 @@ const handleUploadSuccess = (response) => {
 }
 
 // 结束演讲按钮事件
-function endPresentation() {
-  // TODO: 可调用后端接口或弹窗确认
-  window.$message?.success('演讲已结束！')
-  // 这里可补充跳转或其他逻辑
+async function endPresentation() {
+  const params = new URLSearchParams();
+  params.append('lid', String(lid.value));
+  try {
+    const res = await axios.post('/speaker/end_lecture', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    if (res && res.res) {
+      window.$message?.success('演讲已结束！');
+      // 可选：跳转主页或刷新状态
+    } else {
+      window.$message?.error('结束演讲失败');
+    }
+  } catch (e) {
+    window.$message?.error('结束演讲异常');
+  }
 }
 </script>
 

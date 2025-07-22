@@ -3,6 +3,7 @@ import time
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi_cli import logging
 from tortoise.contrib.fastapi import register_tortoise
@@ -13,7 +14,13 @@ from DAO.models import User, File, UserFile
 from config import DB_CONFIG
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],            # 允许的源
+    allow_credentials=True,
+    allow_methods=["*"],              # 允许所有方法
+    allow_headers=["*"],              # 允许所有请求头
+)
 #数据库绑定
 register_tortoise(
     app,
