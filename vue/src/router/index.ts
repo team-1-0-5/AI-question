@@ -9,6 +9,11 @@ import LectureDetail from '@/pages/LectureDetail.vue';
 
 const routes = [
   {
+    path: '/speaker-home',
+    name: 'SpeakerHome1',
+    component: SpeakerHome
+  },
+  {
     path: '/speaker-upcoming-detail',
     name: 'SpeakerUpcomingDetail',
     component: () => import('@/pages/SpeakerUpcomingDetail.vue')
@@ -83,6 +88,27 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+// 全局前置守卫：访问/时自动检测登录状态
+router.beforeEach((to, from, next) => {
+  if (to.path === '/') {
+    const uid = localStorage.getItem('uid');
+    const type = localStorage.getItem('type');
+    if (!uid || !type) {
+      next('/login');
+    } else {
+      if (type === '演讲者') {
+        next({ path: '/' }); // 保持在演讲者主页
+      } else if (type === '听众') {
+        next({ path: '/audience-home' });
+      } else {
+        next('/login');
+      }
+    }
+  } else {
+    next();
+  }
 });
 
 export default router;
