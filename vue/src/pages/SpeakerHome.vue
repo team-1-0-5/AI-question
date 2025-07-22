@@ -123,6 +123,7 @@
     <!-- 个人中心占位 -->
     <section v-if="activeTab === 2"  class="center-section">
       <div class="center-placeholder">个人中心功能开发中...</div>
+      <button class="logout-btn" @click="logout">退出登录</button>
     </section>
 
     <BottomNav :active="activeTab" @changeTab="onTabChange" />
@@ -130,6 +131,11 @@
 </template>
 
 <script setup lang="ts">
+const logout = () => {
+  localStorage.removeItem('uid');
+  localStorage.removeItem('type');
+  router.replace('/login');
+}
 // 折线图tooltip
 import { ref as vueRef, onMounted } from 'vue';
 import axios from '@/utils/api.js';
@@ -393,6 +399,23 @@ function deleteLecture(lecture: any) {
 .center-placeholder {
   text-align: center;
   color: #aaa;
+}
+
+.logout-btn {
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #f44336 0%, #e57373 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.9rem 2.5rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(244,67,54,0.13);
+  transition: all 0.2s;
+}
+.logout-btn:hover {
+  background: #d32f2f;
 }
 
 .sh-header {

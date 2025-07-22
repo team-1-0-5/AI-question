@@ -42,14 +42,16 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        const res = await axios.post('/login', {
-          username: this.username,
-          password: this.password
-        })
-        if (res.data && res.data.res) {
+        const params = new URLSearchParams();
+        params.append('username', this.username);
+        params.append('password', this.password);
+        const res = await axios.post('/login', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        if (res.res) {
           // 登录成功，保存uid和type到localStorage
-          localStorage.setItem('uid', res.data.uid)
-          localStorage.setItem('type', res.data.type)
+          localStorage.setItem('uid', res.uid)
+          localStorage.setItem('type', res.type)
           this.$router.push('/')
         } else {
           this.$message?.error('用户名或密码错误')
