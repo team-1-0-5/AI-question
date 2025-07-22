@@ -16,10 +16,10 @@ from config import DB_CONFIG
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许的源
+    allow_origins=["*"],      # 允许的源
     allow_credentials=True,
-    allow_methods=["*"],  # 允许所有方法
-    allow_headers=["*"],  # 允许所有请求头
+    allow_methods=["*"],      # 允许所有方法
+    allow_headers=["*"],     # 允许所有请求头
 )
 # 数据库绑定
 register_tortoise(
