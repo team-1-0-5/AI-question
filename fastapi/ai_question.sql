@@ -11,7 +11,7 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 21/07/2025 21:51:31
+ Date: 22/07/2025 19:43:52
 */
 
 SET NAMES utf8mb4;
@@ -38,13 +38,14 @@ CREATE TABLE `allocation`  (
 DROP TABLE IF EXISTS `create_speech`;
 CREATE TABLE `create_speech`  (
   `speech_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  PRIMARY KEY (`user_id` DESC) USING BTREE
+  `user_id` int NOT NULL
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of create_speech
 -- ----------------------------
+INSERT INTO `create_speech` VALUES (8, 1);
+INSERT INTO `create_speech` VALUES (9, 1);
 
 -- ----------------------------
 -- Table structure for file
@@ -55,12 +56,13 @@ CREATE TABLE `file`  (
   `file_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `file_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   PRIMARY KEY (`file_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 18 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of file
 -- ----------------------------
 INSERT INTO `file` VALUES (17, 'uploads\\123123_1.txt_1752671980.4293556', 'courseware');
+INSERT INTO `file` VALUES (18, 'uploads\\1__1753183088.8613737_121.txt', 'courseware');
 
 -- ----------------------------
 -- Table structure for join_speech
@@ -113,10 +115,10 @@ DROP TABLE IF EXISTS `speech`;
 CREATE TABLE `speech`  (
   `speech_id` int NOT NULL AUTO_INCREMENT,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `begin_time` datetime NOT NULL,
   PRIMARY KEY (`speech_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of speech
@@ -125,6 +127,9 @@ INSERT INTO `speech` VALUES (2, '一个演讲', '简介', '2022-05-25 20:00:00')
 INSERT INTO `speech` VALUES (3, '一个演讲', '简介', '2022-05-25 20:00:00');
 INSERT INTO `speech` VALUES (4, '一个演讲', '简介', '2022-05-25 20:00:00');
 INSERT INTO `speech` VALUES (5, '一个演讲', '简介', '2022-05-25 20:00:00');
+INSERT INTO `speech` VALUES (7, '演讲创建测试', NULL, '2025-07-22 19:40:16');
+INSERT INTO `speech` VALUES (8, '演讲创建测试', NULL, '2025-07-22 19:40:42');
+INSERT INTO `speech` VALUES (9, '演讲创建测试', NULL, '2025-07-22 19:42:12');
 
 -- ----------------------------
 -- Table structure for speech_file
@@ -132,13 +137,15 @@ INSERT INTO `speech` VALUES (5, '一个演讲', '简介', '2022-05-25 20:00:00')
 DROP TABLE IF EXISTS `speech_file`;
 CREATE TABLE `speech_file`  (
   `speech_id` int NOT NULL,
-  `file_id` int NOT NULL,
-  PRIMARY KEY (`speech_id`) USING BTREE
+  `file_id` int NOT NULL
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of speech_file
 -- ----------------------------
+INSERT INTO `speech_file` VALUES (8, 17);
+INSERT INTO `speech_file` VALUES (9, 17);
+INSERT INTO `speech_file` VALUES (9, 18);
 
 -- ----------------------------
 -- Table structure for speech_question
@@ -186,5 +193,6 @@ CREATE TABLE `user_file`  (
 -- Records of user_file
 -- ----------------------------
 INSERT INTO `user_file` VALUES (123123, 17);
+INSERT INTO `user_file` VALUES (1, 18);
 
 SET FOREIGN_KEY_CHECKS = 1;

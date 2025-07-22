@@ -21,9 +21,8 @@ class File(Model):
 
 
 class UserFile(Model):
-    id = fields.IntField(pk=True)
     user_id = fields.IntField()
-    file = fields.ForeignKeyField('models.File', related_name='user_files')
+    file_id = fields.IntField()
 
     class Meta:
         table = "user_file"
@@ -32,8 +31,24 @@ class UserFile(Model):
 class Speech(Model):
     speech_id = fields.IntField(pk=True)
     title = fields.CharField(max_length=255)
-    description = fields.CharField(max_length=255)
+    description = fields.CharField(max_length=255,null=True)
     begin_time = fields.DatetimeField()
 
     class Meta:
         table = "speech"
+
+
+class Create(Model):
+    speech_id = fields.IntField()
+    user_id = fields.IntField()
+
+    class Meta:
+        table = "create_speech"
+
+
+class SpeechFile(Model):
+    speech_id = fields.IntField()
+    file_id = fields.IntField()
+
+    class Meta:
+        table = "speech_file"

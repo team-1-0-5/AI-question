@@ -56,7 +56,7 @@ async def upload_file(
     try:
         # 创建安全的文件名
 
-        filename = f"{uid}__{time.time()}_{file.filename}"
+        filename = f"{uid}_{time.time()}_{file.filename}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
         # 保存文件
