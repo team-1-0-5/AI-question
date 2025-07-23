@@ -123,13 +123,15 @@ async function onSubmit() {
     params.append('name', lectureName.value);
     params.append('uid', uid || '');
     params.append('describe', lectureDesc.value);
-    params.append('start_time', startTime.value);
+    if (startTime.value && startTime.value.trim() !== '') {
+      params.append('start_time', startTime.value);
+    }
     file_ids.forEach(fid => params.append('file_ids', String(fid)));
     const res = await axios.post('/speaker/lecture_create', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    if (res && res.lid) {
-      alert('演讲创建成功！ID: ' + res.lid);
+    if (res && res.lids) {
+      alert('演讲创建成功！ID: ' + res.lids);
       history.back();
     } else {
       alert('演讲创建失败，请重试');

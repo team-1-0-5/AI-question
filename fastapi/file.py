@@ -10,6 +10,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from tortoise.exceptions import DoesNotExist
 
 import speaker
+import statistics
 from DAO.models import User, File, UserFile, Speech, SpeechFile, JoinSpeech, Create
 from config import DB_CONFIG
 
@@ -29,6 +30,7 @@ register_tortoise(
 )
 
 app.include_router(speaker.router)
+app.include_router(statistics.router)
 
 
 @app.get("/")

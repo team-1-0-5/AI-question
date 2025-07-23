@@ -1,0 +1,9 @@
+fastapi==0.116.1
+fastapi-cli==0.0.8
+fastapi-cloud-cli==0.1.4
+uvicorn==0.33.0
+tortoise==0.1.1
+tortoise-orm==0.23.0
+asyncmy==0.2.10
+pydantic==2.10.4
+pydantic-core==2.27.2

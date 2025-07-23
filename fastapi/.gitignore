@@ -1,0 +1,32 @@
+# 忽略上传文件目录
+uploads/
+
+# Python缓存和虚拟环境
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+
+# VSCode配置
+.vscode/
+
+# 数据库/本地配置
+*.db
+*.sqlite3
+*.log
+*.pid
+.DS_Store
+
+# 环境变量
+.env
+.env.*
+
+# 其它常见冲突文件
+.idea/
+*.swp
+*.bak
+*.tmp
+
+

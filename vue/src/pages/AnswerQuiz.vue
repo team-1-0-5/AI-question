@@ -70,66 +70,48 @@
 </template>
 
 <script>
+import { useRoute } from 'vue-router';
 export default {
   data() {
     return {
       currentQuestionIndex: 0,
       selectedOption: null,
       answers: {},
-      answered: {},
-      questions: [
-        {
-          id: 1,
-          text: "以下哪个是Vue3的新特性？",
-          options: [
-            "Options API",
-            "Composition API",
-            "Mixins",
-            "Filters"
-          ],
-          correctAnswer: 1
-        },
-        {
-          id: 2,
-          text: "CSS中用于设置背景颜色的属性是？",
-          options: [
-            "color",
-            "background-color",
-            "bg-color",
-            "background"
-          ],
-          correctAnswer: 1
-        },
-        {
-          id: 3,
-          text: "JavaScript中声明变量的关键字不包括？",
-          options: [
-            "let",
-            "const",
-            "var",
-            "def"
-          ],
-          correctAnswer: 3
-        }
-      ]
+      answered: [],
+      questions: []
     };
   },
   computed: {
     currentQuestion() {
-      return this.questions[this.currentQuestionIndex];
+      return this.questions[this.currentQuestionIndex] || {};
     },
     isAllAnswered() {
       return Object.keys(this.answers).length === this.questions.length;
     }
   },
   created() {
-    // 初始化 answered 数组
+    // 自动解析路由参数
+    let questions = [];
+    try {
+      const route = this.$route;
+      if (route.query.questions) {
+        questions = JSON.parse(decodeURIComponent(route.query.questions));
+        // 兼容后端字段
+        this.questions = questions.map(q => ({
+          id: q.qid,
+          text: q.question,
+          options: q.choices
+        }));
+      }
+    } catch (e) {
+      this.questions = [];
+    }
     this.answered = new Array(this.questions.length).fill(false);
   },
   methods: {
     selectOption(index) {
       this.selectedOption = index;
-      this.answered[this.currentQuestionIndex] = true
+      this.answered[this.currentQuestionIndex] = true;
       this.answers[this.currentQuestionIndex] = index;
     },
     prevQuestion() {
@@ -144,11 +126,45 @@ export default {
         this.selectedOption = this.answers[this.currentQuestionIndex] !== undefined ? this.answers[this.currentQuestionIndex] : null;
       }
     },
-    submitAnswers() {
-      if (this.isAllAnswered) {
-        alert("答案提交成功！");
-        // 这里可以添加提交到服务器的逻辑
-        console.log("用户答案：", this.answers);
+    async submitAnswers() {
+      if (!this.isAllAnswered) return;
+      const uid = localStorage.getItem('uid') || '';
+      const qids = this.questions.map(q => q.id);
+      const answers = qids.map((_, idx) => this.answers[idx]);
+      try {
+        const params = new URLSearchParams();
+        params.append('uid', uid);
+        qids.forEach(qid => params.append('qids', qid));
+        answers.forEach(ans => params.append('answers', ans));
+        const res = await this.$axios?.post?.('/post_answer', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
+          || (await import('@/utils/api.js')).default.post('/post_answer', params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          });
+        if (res && typeof res.score === 'number') {
+          // 弹窗选择
+          if (window.confirm(`答案提交成功！得分：${res.score}\n\n点击“确定”查看解析，点击“取消”返回听演讲`)) {
+            // 跳转到解析页，传递题目和答案
+            this.$router.push({
+              path: '/answer-res',
+              query: {
+                questions: encodeURIComponent(JSON.stringify(this.questions)),
+                answers: encodeURIComponent(JSON.stringify(this.answers))
+              }
+            });
+          } else {
+            // 返回听演讲页面
+            this.$router.push({
+              path: '/lecture-play',
+              query: { lid: this.$route.query.lid }
+            });
+          }
+        } else {
+          alert('提交成功，但未返回得分');
+        }
+      } catch (e) {
+        alert('提交失败，请重试');
       }
     },
     jumpToQuestion(index) {
