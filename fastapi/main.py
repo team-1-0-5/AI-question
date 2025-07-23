@@ -5,7 +5,6 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi_cli import logging
 from tortoise.contrib.fastapi import register_tortoise
 from tortoise.exceptions import DoesNotExist
 
@@ -197,8 +196,6 @@ async def get_lecture_detail(lid: int = Form(...)):
             status_code=404,
             detail="演讲未找到"
         )
-    print(speech.speech_id)
-    print(speech.title)
     files = await SpeechFile.filter(speech_id=lid).all()
     fids = [file.file_id for file in files]
     join_num = await JoinSpeech.filter(speech_id=lid).count()
@@ -212,6 +209,37 @@ async def get_lecture_detail(lid: int = Form(...)):
         "fids": fids,
         "join_num": join_num
     }
+
+
+@app.post("/all_lecture")
+async def get_all_lecture(uid: int = Form(None)):
+    print(uid)
+    speeches=[]
+    if uid is not None:
+        create_files = await Create.filter(user_id=uid).all()
+        speech_ids = {cf.speech_id for cf in create_files}
+        for id in speech_ids:
+            speech=await Speech.filter(speech_id=id).first()
+            speeches.append(speech)
+    else:
+        speeches = await Speech.all()
+    results = []
+    for speech in speeches:
+        print(speech.speech_id)
+        files = await SpeechFile.filter(speech_id=speech.speech_id).all()
+        fids = [file.file_id for file in files]
+        user_id = await Create.filter(speech_id=speech.speech_id).first()
+        speech_creator = await User.filter(user_id=user_id.user_id).first()
+        results.append({
+            "lid": speech.speech_id,
+            "name": speech.title,
+            "speaker": speech_creator.username,
+            "start_time": speech.begin_time,
+            "state": speech.state,
+            "fids": fids
+        })
+
+    return results
 
 
 if __name__ == '__main__':
