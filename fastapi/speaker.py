@@ -1,10 +1,11 @@
+import os
 from datetime import datetime
 from typing import List
-
+import API.main as API
 from fastapi import Form, APIRouter, HTTPException
 from tortoise.exceptions import DoesNotExist
 
-from DAO.models import Speech, Create, SpeechFile
+from DAO.models import Speech, Create, SpeechFile, File
 
 router = APIRouter(
     prefix="/speaker",
@@ -48,6 +49,7 @@ async def start_lecture(lid: int = Form(...)):
             detail=f"更新状态失败: {str(e)}"
         )
 
+
 @router.post("/end_lecture")
 async def start_lecture(lid: int = Form(...)):
     try:
@@ -69,3 +71,35 @@ async def start_lecture(lid: int = Form(...)):
             status_code=500,
             detail=f"更新状态失败: {str(e)}"
         )
+
+
+@router.post("/post_answer")
+async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: int = Form(None),
+                      end_page: int = Form(None)):
+    files_path = []
+    if fid is not None:
+        file = await File.filter(file_id=fid).first()
+        files_path.append(file.file_address)
+    else:
+        file_ids = await SpeechFile.filter(speech_id=lid).all()
+        for id in file_ids:
+            file2 = await File.filter(file_id=id.file_id).first()
+            file_path2 = file2.file_address
+            files_path.append(file_path2)
+
+    base_dir = r"D:\2025_summer\AI-question\fastapi"
+
+    text_list = []
+    for file_path in files_path:
+        full_path = os.path.join(base_dir, file_path)
+        if not os.path.exists(full_path):
+            print("文件不存在")
+        text_list += API.ppt_to_text_list(full_path)
+
+    if start_page is None:
+        start_page = 1
+    if end_page is None:
+        end_page = len(text_list)
+
+    result = API.summarize_and_generate_questions(text_list[start_page:end_page])
+    print(result)

@@ -213,7 +213,6 @@ async def get_lecture_detail(lid: int = Form(...)):
 
 @app.post("/all_lecture")
 async def get_all_lecture(uid: int = Form(None)):
-    print(uid)
     speeches=[]
     if uid is not None:
         create_files = await Create.filter(user_id=uid).all()
