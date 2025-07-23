@@ -9,43 +9,56 @@ import asyncio
 
 router = APIRouter()
 
-# 全局存储演讲推送信息
-lecture_push_info: Dict[int, Dict[int, List[int]]] = {}  # lid -> {times: [qid1, qid2, ...]}
+# 全局存储演讲推送信息 - 按用户存储
+user_lecture_push_info: Dict[Tuple[int, int], Dict[int, List[int]]] = {}  # (uid, lid) -> {times: [qid1, qid2, ...]}
 current_ppt_page: Dict[int, Tuple[int, int]] = {}  # lid -> (current_page, pic_fid)
 
-# 题目推送和PPT推送的连接池
-question_ws_pool: Dict[int, Set[WebSocket]] = {}  # lid -> set of WebSocket
-ppt_ws_pool: Dict[int, Set[WebSocket]] = {}  # lid -> set of WebSocket
+# 题目推送和PPT推送的连接池 - 现在存储用户ID和WebSocket的映射
+question_ws_pool: Dict[int, Dict[int, Set[WebSocket]]] = {}  # lid -> uid -> set of WebSocket
+ppt_ws_pool: Dict[int, Set[WebSocket]] = {}  # lid -> set of WebSocket (PPT推送仍然是广播)
 
 
-async def ws_connect(pool: Dict[int, Set[WebSocket]], lid: int, websocket: WebSocket):
+async def ws_connect(pool: Dict[int, Dict[int, Set[WebSocket]]], uid: int, lid: int, websocket: WebSocket):
     await websocket.accept()
+
+    # 初始化数据结构
     if lid not in pool:
-        pool[lid] = set()
-    pool[lid].add(websocket)
+        pool[lid] = {}
+    if uid not in pool[lid]:
+        pool[lid][uid] = set()
+
+    # 添加WebSocket到连接池
+    pool[lid][uid].add(websocket)
 
 
-def ws_disconnect(pool: Dict[int, Set[WebSocket]], lid: int, websocket: WebSocket):
-    if lid in pool and websocket in pool[lid]:
-        pool[lid].remove(websocket)
-        if not pool[lid]:
-            del pool[lid]
+def ws_disconnect(pool: Dict[int, Dict[int, Set[WebSocket]]], uid: int, lid: int, websocket: WebSocket):
+    if lid in pool and uid in pool[lid] and websocket in pool[lid][uid]:
+        pool[lid][uid].remove(websocket)
+        if not pool[lid][uid]:
+            del pool[lid][uid]
+            if not pool[lid]:
+                del pool[lid]
 
 
 @router.websocket("/ws/question")
 async def ws_question(websocket: WebSocket, uid: int, lid: int):
-    await ws_connect(question_ws_pool, lid, websocket)
+    await ws_connect(question_ws_pool, uid, lid, websocket)
     try:
         while True:
             # 保持连接，不处理接收的消息
             await websocket.receive_text()
     except WebSocketDisconnect:
-        ws_disconnect(question_ws_pool, lid, websocket)
+        ws_disconnect(question_ws_pool, uid, lid, websocket)
 
 
 @router.websocket("/ws/ppt")
 async def ws_ppt(websocket: WebSocket, uid: int, lid: int):
-    await ws_connect(ppt_ws_pool, lid, websocket)
+    # PPT连接池保持原样，因为PPT推送是广播
+    await websocket.accept()
+    if lid not in ppt_ws_pool:
+        ppt_ws_pool[lid] = set()
+    ppt_ws_pool[lid].add(websocket)
+
     try:
         # 如果有当前PPT信息，立即发送给新连接的客户端
         if lid in current_ppt_page:
@@ -59,15 +72,19 @@ async def ws_ppt(websocket: WebSocket, uid: int, lid: int):
             # 保持连接，不处理接收的消息
             await websocket.receive_text()
     except WebSocketDisconnect:
-        ws_disconnect(ppt_ws_pool, lid, websocket)
+        if lid in ppt_ws_pool and websocket in ppt_ws_pool[lid]:
+            ppt_ws_pool[lid].remove(websocket)
+            if not ppt_ws_pool[lid]:
+                del ppt_ws_pool[lid]
 
 
-# 推送函数（供演讲者端调用）
-async def push_questions(lid: int, qids: List[int], times: int):
-    # 存储推送信息
-    if lid not in lecture_push_info:
-        lecture_push_info[lid] = {}
-    lecture_push_info[lid][times] = qids
+# 推送函数（供演讲者端调用） - 精确推送给特定用户
+async def push_questions(uid: int, lid: int, qids: List[int], times: int):
+    # 存储推送信息 - 按用户和演讲ID存储
+    key = (uid, lid)
+    if key not in user_lecture_push_info:
+        user_lecture_push_info[key] = {}
+    user_lecture_push_info[key][times] = qids
 
     # 获取题目详情
     questions = []
@@ -82,23 +99,35 @@ async def push_questions(lid: int, qids: List[int], times: int):
         except DoesNotExist:
             continue
 
-    # 推送题目
-    if lid in question_ws_pool:
+    # 推送题目给特定用户
+    if lid in question_ws_pool and uid in question_ws_pool[lid]:
         data = {"questions": questions, "times": times}
-        for ws in list(question_ws_pool[lid]):
-            await ws.send_text(json.dumps(data))
+        # 发送给该用户的所有连接（可能多个标签页）
+        for ws in list(question_ws_pool[lid][uid]):
+            try:
+                await ws.send_text(json.dumps(data))
+            except Exception as e:
+                # 处理发送失败的情况（如连接已关闭）
+                print(f"Failed to send to user {uid}: {str(e)}")
+                # 从连接池中移除无效连接
+                if ws in question_ws_pool[lid][uid]:
+                    question_ws_pool[lid][uid].remove(ws)
 
 
-# 推送PPT页面
+# 推送PPT页面 - 保持广播
 async def push_ppt(lid: int, page: int, pic_fid: int):
     # 存储当前PPT页面
     current_ppt_page[lid] = (page, pic_fid)
 
-    # 推送PPT
+    # 广播PPT更新
     if lid in ppt_ws_pool:
         data = {"page": page, "pic_fid": pic_fid}
         for ws in list(ppt_ws_pool[lid]):
-            await ws.send_text(json.dumps(data))
+            try:
+                await ws.send_text(json.dumps(data))
+            except:
+                # 处理无效连接
+                pass
 
 
 @router.post("/post_answer")
@@ -143,9 +172,10 @@ async def answer_res(
         lid: int = Body(...),
         times: int = Body(...)
 ):
-    # 获取该次推送的题目ID
+    # 获取该次推送的题目ID - 按用户获取
+    key = (uid, lid)
     try:
-        qids = lecture_push_info[lid][times]
+        qids = user_lecture_push_info[key][times]
     except KeyError:
         return JSONResponse({"error": "No questions found for this times"}, status_code=404)
 
