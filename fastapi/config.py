@@ -13,7 +13,7 @@ DB_CONFIG = {
     },
     "apps": {
         "models": {
-            "models": ["__main__","speaker"],  # 指向当前模块的模型
+            "models": ["DAO.models","speaker"],  # 指向当前模块的模型
             "default_connection": "default",
         }
     },

@@ -14,7 +14,7 @@
     </div>
 
     <!-- 题目详情列表 -->
-    <div class="question-list">
+    <div v-if="!loading && !error" class="question-list">
       <div
         v-for="(question, index) in questions"
         :key="index"
@@ -27,8 +27,7 @@
             {{ getResultText(index) }}
           </span>
         </div>
-        <div class="question-content">{{ question.text }}</div>
-
+        <div class="question-content">{{ question.question }}</div>
         <div class="answer-comparison">
           <div class="answer-item">
             <span class="label">你的答案：</span>
@@ -39,20 +38,23 @@
           <div class="answer-item">
             <span class="label">正确答案：</span>
             <span class="correct-answer">
-              {{ getOptionText(question, question.correctAnswer) }}
+              {{ getOptionText(question, trueAnswers[index]) }}
             </span>
           </div>
         </div>
+        <div class="answer-reason" v-if="getReason(index)">
+          <span class="label">解析：</span>
+          <span class="reason-text">{{ getReason(index) }}</span>
+        </div>
       </div>
     </div>
+    <div v-if="loading" style="text-align:center;padding:2rem;">加载中...</div>
+    <div v-if="error" style="color:red;text-align:center;padding:2rem;">{{ error }}</div>
 
     <!-- 操作按钮 -->
     <div class="action-buttons">
-      <button class="btn back-btn" @click="handleRetry">
-        重新答题
-      </button>
-      <button class="btn review-btn" @click="handleReview">
-        查看解析
+      <button class="btn back-btn" @click="goBackLecture">
+        返回听演讲页面
       </button>
     </div>
   </div>
@@ -62,49 +64,12 @@
 export default {
   data() {
     return {
-      // 模拟题目数据
-      questions: [
-        {
-          id: 1,
-          text: "以下哪个是Vue3的新特性？",
-          options: [
-            "Options API",
-            "Composition API",
-            "Mixins",
-            "Filters"
-          ],
-          correctAnswer: 1
-        },
-        {
-          id: 2,
-          text: "CSS中用于设置背景颜色的属性是？",
-          options: [
-            "color",
-            "background-color",
-            "bg-color",
-            "background"
-          ],
-          correctAnswer: 1
-        },
-        {
-          id: 3,
-          text: "JavaScript中声明变量的关键字不包括？",
-          options: [
-            "let",
-            "const",
-            "var",
-            "def"
-          ],
-          correctAnswer: 3
-        }
-      ],
-
-      // 模拟用户答案
-      answers: {
-        0: 1,  // 第1题选B
-        1: 0,  // 第2题选A（错误）
-        2: 3   // 第3题选D（错误）
-      }
+      questions: [], // 接口返回的题目列表
+      userAnswers: [], // 用户答案
+      trueAnswers: [], // 正确答案
+      reasons: [],     // 解析
+      loading: true,
+      error: '',
     }
   },
   computed: {
@@ -112,7 +77,7 @@ export default {
       return this.questions.length
     },
     correctCount() {
-      return this.questions.reduce((count, question, index) => {
+      return this.questions.reduce((count, _, index) => {
         return this.isCorrect(index) ? count + 1 : count
       }, 0)
     },
@@ -124,33 +89,70 @@ export default {
   },
   methods: {
     isCorrect(index) {
-      const userAnswer = this.answers[index]
-      return userAnswer === this.questions[index].correctAnswer
+      return this.userAnswers[index] === this.trueAnswers[index];
     },
     isIncorrect(index) {
-      return this.answers[index] !== undefined && !this.isCorrect(index)
+      return this.userAnswers[index] !== undefined && !this.isCorrect(index);
     },
     getResultText(index) {
-      if (this.answers[index] === undefined) return '未作答'
-      return this.isCorrect(index) ? '正确' : '错误'
+      if (this.userAnswers[index] === undefined) return '未作答';
+      return this.isCorrect(index) ? '正确' : '错误';
     },
     getAnswerText(index) {
-      const answer = this.answers[index]
-      if (answer === undefined) return ''
-      return this.getOptionText(this.questions[index], answer)
+      const answer = this.userAnswers[index];
+      if (answer === undefined) return '';
+      return this.getOptionText(this.questions[index], answer);
     },
-    getOptionText(question, index) {
-      return question.options[index] || '无效选项'
+    getOptionText(question, idx) {
+      if (!question || !question.choices) return '';
+      return question.choices[idx] || '无效选项';
     },
-    handleRetry() {
-      alert('重新答题功能待实现')
-      // 这里可以添加重新答题的逻辑
+    getReason(index) {
+      return this.reasons[index] || '';
     },
-    handleReview() {
-      alert('查看解析功能待实现')
-      // 这里可以添加查看解析的逻辑
+    goBackLecture() {
+      // 跳转回听演讲页面，带上lid参数
+      const lid = this.$route.query.lid;
+      this.$router.push({
+        path: '/lecture-play',
+        query: { lid }
+      });
+    },
+  },
+  async mounted() {
+    // 自动调用接口获取数据
+    this.loading = true;
+    this.error = '';
+    try {
+      const uid = localStorage.getItem('uid') || '';
+      const lid = this.$route.query.lid;
+      const times = this.$route.query.times || 1;
+      if (!uid || !lid) {
+        this.error = '缺少必要参数';
+        this.loading = false;
+        return;
+      }
+      const params = new URLSearchParams();
+      params.append('uid', uid);
+      params.append('lid', lid);
+      params.append('times', times);
+      const api = (await import('@/utils/api.js')).default;
+      const res = await api.post('/answer_res', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      if (res && Array.isArray(res.questions)) {
+        this.questions = res.questions;
+        this.userAnswers = res.user_answers || [];
+        this.trueAnswers = res.true_answers || [];
+        this.reasons = res.reason || [];
+      } else {
+        this.error = '接口返回数据异常';
+      }
+    } catch (e) {
+      this.error = '获取作答结果失败';
     }
-  }
+    this.loading = false;
+  },
 }
 </script>
 

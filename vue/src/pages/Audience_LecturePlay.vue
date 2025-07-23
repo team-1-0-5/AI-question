@@ -11,21 +11,21 @@
     <el-tabs v-model="activeTab" class="custom-tabs">
       <el-tab-pane label="演讲详情" name="detail">
         <div class="lecture-detail-pane">
-          <h2 class="lecture-title">{{ currentLecture.title }}</h2>
+          <h2 class="lecture-title">{{ currentLecture.name }}</h2>
           <div class="meta-info">
-            <span>时间：{{ formatDateTime(currentLecture.date, currentLecture.time) }}</span>
-            <span>地点：{{ currentLecture.location }}</span>
-            <span>参与人数：{{ currentLecture.participants }}</span>
+            <span>时间：{{ formatDateTime(currentLecture.start_time) }}</span>
+            <span>演讲者：{{ currentLecture.speaker }}</span>
+            <span>参与人数：{{ currentLecture.join_num }}</span>
           </div>
-          <p class="lecture-desc">{{ currentLecture.description || '暂无简介' }}</p>
         </div>
       </el-tab-pane>
       <el-tab-pane label="听演讲" name="play">
         <div class="ppt-viewer">
           <img :src="currentSlide" class="slide-image" />
-          <div class="navigation">
-            <span class="slide-page">第 {{ currentPage }} / {{ totalPages }} 页</span>
-          </div>
+          <img :src="currentSlide" class="slide-image" v-if="currentSlide" />
+            <div class="navigation">
+              <span class="slide-page">第 {{ currentPage }} 页</span>
+            </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -33,35 +33,78 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import api from '@/utils/api.js';
 
 const route = useRoute();
+const router = useRouter();
 const activeTab = ref('play');
-const lectures = ref([]);
 const currentLecture = ref({});
-
-onMounted(() => {
-  if (route.query.lectures) {
-    try {
-      lectures.value = JSON.parse(route.query.lectures);
-    } catch (e) {
-      lectures.value = [];
-    }
-  }
-  currentLecture.value = lectures.value.find(l => l.id == route.query.id) || {};
+const currentPage = ref(1);
+const currentPicFid = ref('');
+const currentSlide = computed(() => {
+  if (!currentPicFid.value) return '';
+  const uid = localStorage.getItem('uid') || '';
+  return `/download?fid=${currentPicFid.value}&uid=${uid}`;
 });
 
-const currentPage = ref(1);
-const totalPages = 15;
-const currentSlide = computed(() => `/slides/slide-${currentPage.value}.jpg`);
+let ws = null;
+onMounted(async () => {
+  // 只通过lid获取演讲详情
+  const lid = route.query.lid || route.query.id || '';
+  if (lid) {
+    try {
+      const params = new URLSearchParams();
+      params.append('lid', lid);
+      const res = await api.post('/lecture_detail', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      if (res && res.lid) {
+        currentLecture.value = res;
+      }
+    } catch (e) {
+      currentLecture.value = {};
+    }
+  }
 
-// 听众端不能翻页
-
-const formatDateTime = (date, time) => {
-  if (!date) return '';
-  const dateObj = new Date(date);
-  return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${time || ''}`;
+  // 建立WebSocket连接
+  const uid = localStorage.getItem('uid') || '';
+  if (uid && lid) {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+    ws = new WebSocket(`ws://localhost:8000/ws/ppt?uid=${uid}&lid=${lid}`);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // PPT翻页推送
+        if (data.page && data.pic_fid) {
+          currentPage.value = data.page;
+          currentPicFid.value = data.pic_fid;
+        }
+        // 题目推送
+        if (data.questions && Array.isArray(data.questions)) {
+          // 跳转到答题页面并传递题目数据
+          router.push({
+            path: '/answer-quiz',
+            query: {
+              questions: encodeURIComponent(JSON.stringify(data.questions)),
+              times: data.times || 1,
+              lid: lid
+            }
+          });
+        }
+      } catch (e) {}
+    };
+  }
+});
+onUnmounted(() => {
+  if (ws) ws.close();
+});
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '';
+  const dateObj = new Date(dateTime);
+  return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 };
 </script>
 

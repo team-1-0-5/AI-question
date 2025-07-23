@@ -21,9 +21,8 @@ class File(Model):
 
 
 class UserFile(Model):
-    user_id = fields.IntField()
+    user_id = fields.IntField(pk=True)
     file_id = fields.IntField()
-
     class Meta:
         table = "user_file"
 
@@ -52,3 +51,47 @@ class SpeechFile(Model):
 
     class Meta:
         table = "speech_file"
+
+
+class QuestionUser(Model):
+    question_id = fields.IntField(pk=True)
+    user_id = fields.IntField()
+    user_answer = fields.CharField(max_length=255, null=True)
+    class Meta:
+        table = "question_user"
+        unique_together = ("question_id", "user_id")
+
+
+# 题库表
+class Question(Model):
+    question_id = fields.IntField(pk=True)
+    options = fields.CharField(max_length=255)
+    answer = fields.CharField(max_length=255)
+    question = fields.CharField(max_length=255)
+    class Meta:
+        table = "question"
+
+# allocation（答题分配）
+class Allocation(Model):
+    user_id = fields.IntField(pk=True)
+    question_id = fields.IntField()
+    times = fields.DatetimeField()
+    class Meta:
+        table = "allocation"
+        unique_together = ("user_id", "question_id", "times")
+
+# join_speech（听众加入演讲）
+class JoinSpeech(Model):
+    user_id = fields.IntField(pk=True)
+    speech_id = fields.IntField()
+    class Meta:
+        table = "join_speech"
+        unique_together = ("user_id", "speech_id")
+
+# speech_question（演讲题目关联）
+class SpeechQuestion(Model):
+    speech_id = fields.IntField()
+    question_id = fields.IntField()
+    class Meta:
+        table = "speech_question"
+        unique_together = ("question_id",)

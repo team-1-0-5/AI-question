@@ -12,7 +12,8 @@
       </div>
     </header>
 
-    <section v-if="activeTab === 'home'" class="lecture-list">
+    <section v-if="activeTab === 'home'">
+      <div class="lecture-list">
       <div class="lecture-list-header">
         <span></span>
         <button class="sort-btn" @click="toggleSort">
@@ -61,9 +62,24 @@
           </button>
         </li>
       </ul>
+      </div>
     </section>
 
     <section v-else-if="activeTab === 'history'" class="history-list">
+      <div class="heatmap-section">
+        <h3 class="heatmap-title">每日答题正确率热力图</h3>
+        <div class="heatmap-container">
+          <div class="heatmap-row">
+            <div v-for="(item, idx) in heatmapData" :key="idx" class="heatmap-cell" :title="item.date + (item.rate !== null ? (' 正确率: ' + item.rate + '%') : ' 无答题')"
+              :style="{background: item.rate === null ? '#f5f5f5' : getHeatColor(item.rate)}">
+              <span v-if="item.rate !== null">{{ item.rate }}%</span>
+            </div>
+          </div>
+          <div class="heatmap-labels">
+            <span v-for="(item, idx) in heatmapData" :key="'label'+idx" class="heatmap-label">{{ item.date.slice(5) }}</span>
+          </div>
+        </div>
+      </div>
       <div v-if="historyLectures.length === 0" class="empty-tip">暂无历史演讲</div>
       <ul v-else>
         <li v-for="lecture in historyLectures" :key="lecture.lid" class="history-card">
@@ -111,6 +127,36 @@
 </template>
 
 <script setup>
+import { onMounted, ref, computed, watch } from 'vue';
+const heatmapData = ref([]);
+// 获取个人历史正确率
+async function fetchPersonalHistoryRate() {
+  const uid = localStorage.getItem('uid');
+  if (!uid) return;
+  try {
+    // 取近14天
+    const form = new FormData();
+    form.append('uid', uid);
+    form.append('day', 14);
+    const res = await api.post('/statistics/personal_history_rate', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && Array.isArray(res.rates) && Array.isArray(res.date)) {
+      heatmapData.value = res.date.map((date, i) => ({ date, rate: res.rates[i] }));
+    }
+  } catch (e) {
+    // 可加全局提示
+  }
+}
+
+
+function getHeatColor(rate) {
+  if (rate === null) return '#f5f5f5';
+  if (rate >= 95) return '#43a047';
+  if (rate >= 80) return '#8bc34a';
+  if (rate >= 60) return '#ffe082';
+  return '#ef5350';
+}
 const logout = () => {
   localStorage.removeItem('uid');
   localStorage.removeItem('type');
@@ -137,56 +183,30 @@ const historyLectures = ref([
     status: '已结束'
   }
 ]);
-import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const searchQuery = ref('');
 const sortOption = ref('timeAsc');
 
-// 模拟进行中的演讲数据
-const lectures = ref([
-  {
-    lid: 1,
-    name: 'AI与未来教育变革趋势分析',
-    speaker: 'zhangsan',
-    start_time: '2025-07-15 14:00',
-    fids: [101, 102],
-    status: '进行中'
-  },
-  {
-    lid: 2,
-    name: '大数据分析实战技巧与应用',
-    speaker: 'lisi',
-    start_time: '2025-06-28 10:00',
-    fids: [103],
-    status: '已结束'
-  },
-  {
-    lid: 3,
-    name: '高效PPT设计与演讲技巧',
-    speaker: 'wangwu',
-    start_time: '2025-05-15 13:30',
-    fids: [104, 105],
-    status: '已结束'
-  },
-  {
-    lid: 4,
-    name: '云计算架构设计与实践',
-    speaker: 'zhaoliu',
-    start_time: '2025-08-22 09:00',
-    fids: [],
-    status: '即将开始'
-  },
-  {
-    lid: 5,
-    name: '前端工程化与性能优化',
-    speaker: 'sunqi',
-    start_time: '2025-08-05 15:00',
-    fids: [106],
-    status: '即将开始'
+import api from '@/utils/api.js';
+const lectures = ref([]);
+
+// 页面加载时获取所有演讲信息
+onMounted(async () => {
+  try {
+    const res = await api.post('/all_lecture');
+    if (res && Array.isArray(res.data)) {
+      // 兼容字段名，后端state转为status
+      lectures.value = res.data.map(item => ({
+        ...item,
+        status: item.state === 'ongoing' ? '进行中' : item.state === 'upcoming' ? '即将开始' : '已结束'
+      }));
+    }
+  } catch (e) {
+    // 可加全局提示
   }
-]);
+});
 
 const filteredLectures = computed(() => {
   const filtered = lectures.value.filter(l => l.status === '进行中');
@@ -201,7 +221,10 @@ const formatDate = (dateString) => {
   const date = new Date(dateString);
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 };
-
+// 监听tab切换到history时拉取数据
+watch(() => activeTab.value, (val) => {
+  if (val === 'history') fetchPersonalHistoryRate();
+});
 const joinLecture = (lecture) => {
   // 跳转到详情页并传递id和lectures数据
   router.push({
@@ -230,6 +253,54 @@ const goToProfile = () => {
 </script>
 
 <style scoped>
+.heatmap-section {
+  max-width: 900px;
+  margin: 24px auto 0 auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 18px 18px 12px 18px;
+}
+.heatmap-title {
+  font-size: 1.1rem;
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.heatmap-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.heatmap-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.heatmap-cell {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #222;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: background 0.2s;
+}
+.heatmap-labels {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.heatmap-label {
+  width: 36px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #888;
+}
 .history-list {
   max-width: 900px;
   margin: 30px auto;
