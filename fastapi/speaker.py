@@ -48,7 +48,6 @@ async def start_lecture(lid: int = Form(...)):
             detail=f"更新状态失败: {str(e)}"
         )
 
-
 @router.post("/end_lecture")
 async def start_lecture(lid: int = Form(...)):
     try:
