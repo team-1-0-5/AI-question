@@ -11,18 +11,18 @@ from tortoise.exceptions import DoesNotExist
 
 import speaker
 import statistics
-from DAO.models import User, File, UserFile
+from DAO.models import User, File, UserFile, Speech, SpeechFile, JoinSpeech, Create
 from config import DB_CONFIG
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],            # 允许的源
+    allow_origins=["*"],  # 允许的源
     allow_credentials=True,
-    allow_methods=["*"],              # 允许所有方法
-    allow_headers=["*"],              # 允许所有请求头
+    allow_methods=["*"],  # 允许所有方法
+    allow_headers=["*"],  # 允许所有请求头
 )
-#数据库绑定
+# 数据库绑定
 register_tortoise(
     app,
     config=DB_CONFIG,
@@ -98,8 +98,6 @@ async def download_file(
         exists = await UserFile.exists(user_id=uid, file_id=fid)
 
         if not exists:
-            # 这里可以添加额外的公开文件检查逻辑（如果文件有公开属性）
-            # 但根据当前数据库结构，我们只检查用户-文件关系
             raise HTTPException(
                 status_code=403,
                 detail="You do not have permission to access this file"
@@ -189,6 +187,31 @@ async def signup(username: str = Form(...), password: str = Form(...), user_type
     )
 
     return {"res": True}
+
+
+@app.post("/lecture_detail")
+async def get_lecture_detail(lid: int = Form(...)):
+    speech = await Speech.filter(speech_id=lid).first()
+    if not speech:
+        raise HTTPException(
+            status_code=404,
+            detail="演讲未找到"
+        )
+    print(speech.speech_id)
+    print(speech.title)
+    files = await SpeechFile.filter(speech_id=lid).all()
+    fids = [file.file_id for file in files]
+    join_num = await JoinSpeech.filter(speech_id=lid).count()
+    user_id = await Create.filter(speech_id=lid).first()
+    speech_creator = await User.filter(user_id=user_id.user_id).first()
+    return {
+        "lid": speech.speech_id,
+        "name": speech.title,
+        "speaker": speech_creator.username,
+        "start_time": speech.begin_time,
+        "fids": fids,
+        "join_num": join_num
+    }
 
 
 if __name__ == '__main__':
