@@ -11,7 +11,7 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 22/07/2025 19:43:52
+ Date: 23/07/2025 17:05:06
 */
 
 SET NAMES utf8mb4;
@@ -76,6 +76,7 @@ CREATE TABLE `join_speech`  (
 -- ----------------------------
 -- Records of join_speech
 -- ----------------------------
+INSERT INTO `join_speech` VALUES (2, 9);
 
 -- ----------------------------
 -- Table structure for question
@@ -117,19 +118,20 @@ CREATE TABLE `speech`  (
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `begin_time` datetime NOT NULL,
+  `state` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   PRIMARY KEY (`speech_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of speech
 -- ----------------------------
-INSERT INTO `speech` VALUES (2, '一个演讲', '简介', '2022-05-25 20:00:00');
-INSERT INTO `speech` VALUES (3, '一个演讲', '简介', '2022-05-25 20:00:00');
-INSERT INTO `speech` VALUES (4, '一个演讲', '简介', '2022-05-25 20:00:00');
-INSERT INTO `speech` VALUES (5, '一个演讲', '简介', '2022-05-25 20:00:00');
-INSERT INTO `speech` VALUES (7, '演讲创建测试', NULL, '2025-07-22 19:40:16');
-INSERT INTO `speech` VALUES (8, '演讲创建测试', NULL, '2025-07-22 19:40:42');
-INSERT INTO `speech` VALUES (9, '演讲创建测试', NULL, '2025-07-22 19:42:12');
+INSERT INTO `speech` VALUES (2, '一个演讲', '简介', '2022-05-25 20:00:00', '');
+INSERT INTO `speech` VALUES (3, '一个演讲', '简介', '2022-05-25 20:00:00', '');
+INSERT INTO `speech` VALUES (4, '一个演讲', '简介', '2022-05-25 20:00:00', '');
+INSERT INTO `speech` VALUES (5, '一个演讲', '简介', '2022-05-25 20:00:00', '');
+INSERT INTO `speech` VALUES (7, '演讲创建测试', NULL, '2025-07-22 19:40:16', '');
+INSERT INTO `speech` VALUES (8, '演讲创建测试', NULL, '2025-07-22 19:40:42', '');
+INSERT INTO `speech` VALUES (9, '演讲创建测试', NULL, '2025-07-22 19:42:12', '');
 
 -- ----------------------------
 -- Table structure for speech_file
