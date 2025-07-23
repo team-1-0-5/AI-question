@@ -6,14 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="a6290aea-3530-482d-9afd-48e09ba59e63" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DAO/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/DAO/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/file.py" beforeDir="false" afterPath="$PROJECT_DIR$/file.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../vue/src/pages/AnswerQuiz.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../vue/src/pages/AnswerQuiz.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../vue/src/pages/AnswerRes.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../vue/src/pages/AnswerRes.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../vue/src/pages/AudienceHome.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../vue/src/pages/AudienceHome.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../vue/src/pages/Audience_LecturePlay.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../vue/src/pages/Audience_LecturePlay.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../vue/src/pages/CreateLecture.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../vue/src/pages/CreateLecture.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
