@@ -196,9 +196,9 @@ const lectures = ref([]);
 onMounted(async () => {
   try {
     const res = await api.post('/all_lecture');
-    if (res && Array.isArray(res.data)) {
+    if (res) {
       // 兼容字段名，后端state转为status
-      lectures.value = res.data.map(item => ({
+      lectures.value = res.map(item => ({
         ...item,
         status: item.state === 'ongoing' ? '进行中' : item.state === 'upcoming' ? '即将开始' : '已结束'
       }));
@@ -209,7 +209,15 @@ onMounted(async () => {
 });
 
 const filteredLectures = computed(() => {
-  const filtered = lectures.value.filter(l => l.status === '进行中');
+  // 支持搜索和状态过滤
+  let filtered = lectures.value.filter(l => l.status === '进行中');
+  if (searchQuery.value) {
+    const q = searchQuery.value.trim().toLowerCase();
+    filtered = filtered.filter(l =>
+      (l.name && l.name.toLowerCase().includes(q)) ||
+      (l.speaker && l.speaker.toLowerCase().includes(q))
+    );
+  }
   return filtered.sort((a, b) => {
     const dateA = new Date(a.start_time).getTime();
     const dateB = new Date(b.start_time).getTime();
@@ -226,12 +234,11 @@ watch(() => activeTab.value, (val) => {
   if (val === 'history') fetchPersonalHistoryRate();
 });
 const joinLecture = (lecture) => {
-  // 跳转到详情页并传递id和lectures数据
+  // 跳转到详情页只传lid
   router.push({
     path: '/lecture-detail',
     query: {
-      id: lecture.lid,
-      lectures: JSON.stringify(lectures.value)
+      lid: lecture.lid
     }
   });
 };

@@ -49,7 +49,8 @@ const currentSlide = computed(() => {
   return `/download?fid=${currentPicFid.value}&uid=${uid}`;
 });
 
-let ws = null;
+let wsPPT = null;
+let wsQuestion = null;
 onMounted(async () => {
   // 只通过lid获取演讲详情
   const lid = route.query.lid || route.query.id || '';
@@ -68,13 +69,11 @@ onMounted(async () => {
     }
   }
 
-  // 建立WebSocket连接
+  // 建立PPT WebSocket连接
   const uid = localStorage.getItem('uid') || '';
   if (uid && lid) {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-    ws = new WebSocket(`ws://localhost:8000/ws/ppt?uid=${uid}&lid=${lid}`);
-    ws.onmessage = (event) => {
+    wsPPT = new WebSocket(`ws://localhost:8000/listener/ws/ppt?uid=${uid}&lid=${lid}`);
+    wsPPT.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         // PPT翻页推送
@@ -82,9 +81,16 @@ onMounted(async () => {
           currentPage.value = data.page;
           currentPicFid.value = data.pic_fid;
         }
+      } catch (e) {}
+    };
+
+    // 建立题目推送 WebSocket 连接
+    wsQuestion = new WebSocket(`ws://localhost:8000/listener/ws/question?uid=${uid}&lid=${lid}`);
+    wsQuestion.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
         // 题目推送
         if (data.questions && Array.isArray(data.questions)) {
-          // 跳转到答题页面并传递题目数据
           router.push({
             path: '/answer-quiz',
             query: {
@@ -99,7 +105,8 @@ onMounted(async () => {
   }
 });
 onUnmounted(() => {
-  if (ws) ws.close();
+  if (wsPPT) wsPPT.close();
+  if (wsQuestion) wsQuestion.close();
 });
 const formatDateTime = (dateTime) => {
   if (!dateTime) return '';
