@@ -5,8 +5,8 @@ import API.main as API
 from fastapi import Form, APIRouter, HTTPException
 from tortoise.exceptions import DoesNotExist
 
-from DAO.models import Speech, Create, SpeechFile, File
-from listener import push_ppt
+from DAO.models import Speech, Create, SpeechFile, File, Question, JoinSpeech
+from listener import push_ppt, push_questions
 
 router = APIRouter(
     prefix="/speaker",
@@ -20,7 +20,7 @@ async def create_speech(name: str = Form(...), uid: int = Form(...), describe: s
                         file_ids: List[int] = Form([]), start_time: datetime = Form(None)):
     if start_time is None:
         start_time = datetime.now()
-    speech = await Speech.create(title=name, description=describe, begin_time=start_time,state="upcoming")
+    speech = await Speech.create(title=name, description=describe, begin_time=start_time, state="upcoming")
     await Create.create(user_id=uid, speech_id=speech.speech_id)
     for file_id in file_ids:
         await SpeechFile.create(speech_id=speech.speech_id, file_id=file_id)
@@ -77,6 +77,7 @@ async def start_lecture(lid: int = Form(...)):
 @router.post("/post_answer")
 async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: int = Form(None),
                       end_page: int = Form(None)):
+
     files_path = []
     if fid is not None:
         file = await File.filter(file_id=fid).first()
@@ -121,8 +122,51 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
         start_page = 1
     if end_page is None:
         end_page = len(text_list)
-    result = API.summarize_and_generate_questions(text_list[start_page:end_page],"a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh")
-    print(result)
+    listener_ids = await JoinSpeech.filter(speech_id=lid).all()
+
+    for listener_id in listener_ids:
+        result = API.summarize_and_generate_questions(text_list[start_page:end_page],
+                                                      "a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh")
+        try:
+            # 解析问题列表
+            questions = [q.strip() for q in result['questions_str'].split('\n') if q.strip()]
+
+            # 解析选项（每组4个选项）
+            all_options = [opt.strip() for opt in result['options_str'].split('\n') if opt.strip()]
+            option_groups = [all_options[i:i + 4] for i in range(0, len(all_options), 4)]
+
+            # 解析答案索引
+            answer_indices = [int(idx.strip()) for idx in result['answer_indices_str'].split('\n') if idx.strip()]
+
+            # 解析解析文本
+            explanations = [exp.strip() for exp in result['explanations_str'].split('\n') if exp.strip()]
+
+            # 验证数据一致性
+            if len(questions) != len(option_groups) or len(questions) != len(answer_indices) or len(questions) != len(
+                    explanations):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"数据长度不一致: 问题({len(questions)}), 选项组({len(option_groups)}), 答案({len(answer_indices)}), 解析({len(explanations)})"
+                )
+            q_ids=[]
+            for i in range(len(questions)):
+                # 获取正确答案文本
+                correct_answer = option_groups[i][answer_indices[i]]
+
+                # 创建并保存问题记录
+                new_question=await Question.create(
+                    question=questions[i],
+                    options=";".join(option_groups[i]),  # 选项用分号分隔
+                    answer=correct_answer,
+                    analysis=explanations[i]
+                )
+                new_question_id=new_question.question_id
+                q_ids.append(new_question_id)
+            await push_questions(listener_id, lid, q_ids)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"处理错误: {str(e)}")
+    return {'res':1}
+
 
 # 添加演讲文件接口
 @router.post("/add_file")
@@ -141,6 +185,7 @@ async def add_file(lid: int = Form(...), fid: int = Form(...)):
     except Exception as e:
         print(f"添加演讲文件失败: {e}")
         return {"res": False}
+
 
 @router.post("/show_ppt")
 async def show_ppt(lid: int = Form(...), fid: int = Form(...), page: int = Form(...)):

@@ -69,6 +69,7 @@ class Question(Model):
     options = fields.CharField(max_length=255)
     answer = fields.CharField(max_length=255)
     question = fields.CharField(max_length=255)
+    analysis=fields.CharField(max_length=255)
     class Meta:
         table = "question"
 
