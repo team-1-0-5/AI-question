@@ -6,14 +6,14 @@ DB_CONFIG = {
                 "host": "localhost",
                 "port": 3306,
                 "user": "root",
-                "password": "223700023",
+                "password": "root",
                 "database": "ai_question",
             }
         }
     },
     "apps": {
         "models": {
-            "models": ["DAO.models","speaker"],  # 指向当前模块的模型
+            "models": ["DAO.models"],  # 指向当前模块的模型
             "default_connection": "default",
         }
     },

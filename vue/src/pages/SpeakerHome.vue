@@ -185,13 +185,28 @@ const lectures = ref<Lecture[]>([])
 onMounted(async () => {
   const uid = localStorage.getItem('uid');
   try {
-    const res = await axios.post('/all_lecture', uid ? { uid } : {});
+    const form = new FormData();
+    if (uid) form.append('uid', uid);
+    const res = await axios.post('/all_lecture', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     // 返回参数为data列表
+    const statusMap = {
+      ongoing: '进行中',
+      upcoming: '即将开始',
+      ended: '已结束'
+    };
+    let rawLectures = [];
     if (res && Array.isArray(res.data)) {
-      lectures.value = res.data;
+      rawLectures = res.data;
     } else if (res && Array.isArray(res)) {
-      lectures.value = res;
-    } else {
+      rawLectures = res;
+    }
+    lectures.value = rawLectures.map((l: any) => ({
+      ...l,
+      status: l.state === 'ongoing' ? '进行中' : l.state === 'upcoming' ? '即将开始' : '已结束'
+    }));
+    if (!Array.isArray(rawLectures)) {
       lectures.value = [];
     }
   } catch (e) {

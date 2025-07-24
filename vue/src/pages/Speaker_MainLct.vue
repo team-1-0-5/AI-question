@@ -1,3 +1,4 @@
+
 <template>
   <div class="container">
     <div>
@@ -35,13 +36,18 @@
 
           <div class="courseware-section">
             <h3 class="section-title">课件管理</h3>
-            <el-upload action="/api/upload" :on-success="handleUploadSuccess">
+            <el-upload :http-request="customUpload" show-file-list="false">
               <el-button type="primary">上传课件</el-button>
             </el-upload>
             <ul class="file-list">
               <li v-for="file in presentation.files" :key="file.name">
-                <span class="file-name">{{ file.name }}</span>
-                <span class="upload-time">({{ file.size }})</span>
+                <a
+                  class="file-name"
+                  :href="'#'"
+                  @click.prevent="downloadFile(file)"
+                  style="color:#2e7d32;text-decoration:underline;cursor:pointer;"
+                >{{ file.name }}</a>
+                <span class="upload-time">({{ (file.size/1024/1024).toFixed(2) }}MB)</span>
               </li>
             </ul>
           </div>
@@ -137,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from '@/utils/api.js'
 import { useRoute } from 'vue-router'
 
@@ -145,17 +151,61 @@ import { useRoute } from 'vue-router'
 const route = useRoute();
 const lid = computed(() => Number(route.query.lid) || Number(route.params.lid) || 1);
 
-// 演示数据
+// 演讲详情数据
 const presentation = ref({
-  title: "人工智能发展趋势",
-  participants: 128,
-  startTime: "2024-03-20 14:30",
-  description: "本次演讲将深入探讨AI领域的最新发展...",
-  files: [
-    { fid:1, name: "PPT-Chapter1.pdf", size: "2.4MB", uploadTime: "14:25" },
-    { fid:2, name: "Case-Study.pdf", size: "1.8MB", uploadTime: "14:28" }
-  ]
-})
+  title: '',
+  participants: 0,
+  startTime: '',
+  description: '',
+  speaker: '',
+  files: [],
+  lid: 0,
+  join_num: 0
+});
+
+onMounted(async () => {
+  const form = new FormData();
+  form.append('lid', String(lid.value));
+  try {
+    const res = await axios.post('/lecture_detail', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && res.lid) {
+      presentation.value.lid = res.lid;
+      presentation.value.title = res.name || '';
+      presentation.value.speaker = res.speaker || '';
+      presentation.value.startTime = res.start_time || '';
+      presentation.value.join_num = res.join_num || 0;
+      presentation.value.participants = res.join_num || 0;
+      // 文件id列表转为文件对象，补充详细信息
+      presentation.value.files = [];
+      const uid = localStorage.getItem('uid');
+      if (Array.isArray(res.fids) && uid) {
+        for (const fid of res.fids) {
+          const fileForm = new FormData();
+          fileForm.append('fid', String(fid));
+          fileForm.append('uid', String(uid));
+          try {
+            const fileRes = await axios.post('/file_info', fileForm, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (fileRes && fileRes.fid) {
+              presentation.value.files.push({
+                fid: fileRes.fid,
+                name: fileRes.file_name || `文件${fid}`,
+                owner: fileRes.owner || '',
+                size: fileRes.size || '',
+                uploadTime: fileRes.uploadTime || ''
+              });
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    window.$message?.error('演讲详情获取失败');
+  }
+});
 
 // PPT控制
 const currentPage = ref(1)
@@ -204,7 +254,85 @@ watch(currentPage, (val) => {
     showPPT(val);
   }
 });
-
+// 上传成功后自动获取文件信息并补充到文件列表
+const handleUploadSuccess = async (response, file) => {
+  const uid = localStorage.getItem('uid');
+  const lidVal = presentation.value.lid;
+  if (!response || !response.fid || !uid || !lidVal) return;
+  // 1. 添加文件到演讲
+  const addForm = new FormData();
+  addForm.append('lid', String(lidVal));
+  addForm.append('fid', String(response.fid));
+  try {
+    const addRes = await axios.post('/speaker/add_file', addForm, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (!addRes || addRes.res !== true) {
+      window.$message?.error('文件未成功加入演讲');
+      return;
+    }
+  } catch (e) {
+    window.$message?.error('文件加入演讲失败');
+    return;
+  }
+  // 2. 获取文件详细信息
+  const form = new FormData();
+  form.append('fid', String(response.fid));
+  form.append('uid', String(uid));
+  try {
+    const res = await axios.post('/file_info', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && res.fid) {
+      presentation.value.files.push({
+        fid: res.fid,
+        name: res.file_name || file.name,
+        owner: res.owner || '',
+        size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+        uploadTime: new Date().toLocaleTimeString()
+      });
+    }
+  } catch (e) {
+    window.$message?.error('文件信息获取失败');
+  }
+}
+// 文件下载，表单方式请求 /download，自动下载
+const downloadFile = async (file) => {
+  const uid = localStorage.getItem('uid');
+  if (!file.fid || !uid) {
+    window.$message?.error('文件信息缺失，无法下载');
+    return;
+  }
+  const form = new FormData();
+  form.append('fid', String(file.fid));
+  form.append('uid', String(uid));
+  try {
+    // 用 fetch 直接下载文件，始终走后端服务
+    const baseURL = 'http://localhost:8000';
+    const res = await fetch(baseURL + '/download', {
+      method: 'POST',
+      body: form
+    });
+    if (!res.ok) {
+      window.$message?.error('文件下载失败');
+      return;
+    }
+    const blob = await res.blob();
+    // 获取文件名
+    let filename = file.name || 'downloaded_file';
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    window.$message?.error('文件下载异常');
+  }
+}
 // PPT展示接口，支持传入页码
 const showPPT = async (page = currentPage.value) => {
   console.log(`请求PPT页码: ${page}, 当前课件: ${selectedFile.value},lid: ${lid.value}`);
@@ -276,12 +404,34 @@ const sendQuiz = async () => {
     window.$message?.error('题目发送异常');
   }
 }
-const handleUploadSuccess = (response) => {
-  presentation.value.files.push({
-    name: response.filename,
-    size: response.size,
-    uploadTime: new Date().toLocaleTimeString()
-  })
+// 自定义文件上传，表单形式，接口 /upload
+const customUpload = async (option) => {
+  const uid = localStorage.getItem('uid');
+  if (!uid) {
+    window.$message?.error('未登录，无法上传');
+    return;
+  }
+  const form = new FormData();
+  form.append('file', option.file);
+  form.append('uid', uid);
+  form.append('type', 'courseware');
+  try {
+    const res = await axios.post('/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && res.fid) {
+      // 上传成功后自动获取文件信息
+      await handleUploadSuccess(res, option.file);
+      window.$message?.success('文件上传成功');
+      option.onSuccess && option.onSuccess(res);
+    } else {
+      window.$message?.error('文件上传失败');
+      option.onError && option.onError();
+    }
+  } catch (e) {
+    window.$message?.error('文件上传异常');
+    option.onError && option.onError(e);
+  }
 }
 
 // 结束演讲按钮事件

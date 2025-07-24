@@ -19,7 +19,7 @@ async def create_speech(name: str = Form(...), uid: int = Form(...), describe: s
                         file_ids: List[int] = Form([]), start_time: datetime = Form(None)):
     if start_time is None:
         start_time = datetime.now()
-    speech = await Speech.create(title=name, description=describe, begin_time=start_time, )
+    speech = await Speech.create(title=name, description=describe, begin_time=start_time,state="upcoming")
     await Create.create(user_id=uid, speech_id=speech.speech_id)
     for file_id in file_ids:
         await SpeechFile.create(speech_id=speech.speech_id, file_id=file_id)
@@ -103,3 +103,21 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
 
     result = API.summarize_and_generate_questions(text_list[start_page:end_page])
     print(result)
+
+# 添加演讲文件接口
+@router.post("/add_file")
+async def add_file(lid: int = Form(...), fid: int = Form(...)):
+    try:
+        # 检查演讲和文件是否存在
+        speech = await Speech.get_or_none(speech_id=lid)
+        file = await File.get_or_none(file_id=fid)
+        if not speech or not file:
+            return {"res": False}
+        # 检查是否已关联，避免重复
+        exists = await SpeechFile.exists(speech_id=lid, file_id=fid)
+        if not exists:
+            await SpeechFile.create(speech_id=lid, file_id=fid)
+        return {"res": True}
+    except Exception as e:
+        print(f"添加演讲文件失败: {e}")
+        return {"res": False}

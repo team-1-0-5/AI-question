@@ -1,4 +1,5 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Body
+from DAO.models import JoinSpeech
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Form
 from fastapi.responses import JSONResponse
 from typing import Dict, Set, List, Tuple
 from DAO.models import User, Question, QuestionUser, Allocation, Speech, SpeechQuestion
@@ -7,7 +8,11 @@ import json
 from datetime import datetime
 import asyncio
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/listener",
+    tags=["listener"],
+    responses={404: {"description": "Not Found"}}
+)
 
 # 全局存储演讲推送信息 - 按用户存储
 user_lecture_push_info: Dict[Tuple[int, int], Dict[int, List[int]]] = {}  # (uid, lid) -> {times: [qid1, qid2, ...]}
@@ -132,9 +137,9 @@ async def push_ppt(lid: int, page: int, pic_fid: int):
 
 @router.post("/post_answer")
 async def post_answer(
-        uid: int = Body(...),
-        qids: List[int] = Body(...),
-        answers: List[int] = Body(...)
+        uid: int = Form(...),
+        qids: List[int] = Form(...),
+        answers: List[int] = Form(...)
 ):
     # 验证参数长度
     if len(qids) != len(answers):
@@ -168,9 +173,9 @@ async def post_answer(
 
 @router.post("/answer_res")
 async def answer_res(
-        uid: int = Body(...),
-        lid: int = Body(...),
-        times: int = Body(...)
+        uid: int = Form(...),
+        lid: int = Form(...),
+        times: int = Form(...)
 ):
     # 获取该次推送的题目ID - 按用户获取
     key = (uid, lid)
@@ -216,3 +221,15 @@ async def answer_res(
         "true_answers": true_answers,
         "reason": reason
     })
+
+# 加入演讲接口
+@router.post("/join")
+async def join_lecture(uid: int = Form(...), lid: int = Form(...)):
+    try:
+        # 检查是否已加入
+        exists = await JoinSpeech.exists(user_id=uid, speech_id=lid)
+        if not exists:
+            await JoinSpeech.create(user_id=uid, speech_id=lid)
+        return {"res": True}
+    except Exception as e:
+        return {"res": False}

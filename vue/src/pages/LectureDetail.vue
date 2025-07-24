@@ -11,7 +11,7 @@
 
     <section class="detail-content">
       <div class="status-tag active">进行中</div>
-      <h1 class="lecture-title">{{ currentLecture.title }}</h1>
+      <h1 class="lecture-title">{{ currentLecture.name }}</h1>
 
       <div class="meta-info">
         <div class="info-item">
@@ -19,14 +19,14 @@
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
-          <span>{{ formatDateTime(currentLecture.date, currentLecture.time) }}</span>
+          <span>{{ formatDateTime(currentLecture.start_time) }}</span>
         </div>
         <div class="info-item">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
             <circle cx="12" cy="10" r="3"></circle>
           </svg>
-          <span>{{ currentLecture.location }}</span>
+          <span>{{ Array.isArray(currentLecture.fids) ? currentLecture.fids.length : 0 }}</span>
         </div>
       </div>
 
@@ -41,7 +41,7 @@
           立即加入演讲
         </button>
         <div class="participant-count">
-          当前参与人数：{{ currentLecture.participants }}
+          当前参与人数：{{ currentLecture.join_num }}
         </div>
       </div>
     </section>
@@ -49,47 +49,65 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import api from '@/utils/api.js';
 
 const route = useRoute();
 const router = useRouter();
+const currentLecture = ref({});
 
-
-// 支持从query中获取lectures数据
-import { onMounted } from 'vue';
-const lectures = ref([]);
-onMounted(() => {
-  if (route.query.lectures) {
+onMounted(async () => {
+  const lid = route.query.lid || route.query.id || '';
+  if (lid) {
     try {
-      lectures.value = JSON.parse(route.query.lectures);
+      const params = new URLSearchParams();
+      params.append('lid', lid);
+      const res = await api.post('/lecture_detail', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      if (res && res.lid) {
+        currentLecture.value = res;
+      }
     } catch (e) {
-      lectures.value = [];
+      currentLecture.value = {};
     }
-  } else {
-    // 可选：本地兜底数据
-    lectures.value = [];
   }
 });
 
-const currentLecture = computed(() => {
-  return lectures.value.find(l => l.id == route.query.id) || {};
-});
-
-const formatDateTime = (date, time) => {
-  const dateObj = new Date(date);
-  return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${time}`;
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '';
+  const dateObj = new Date(dateTime);
+  return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 };
 
-const joinLecture = () => {
-  // 跳转到听演讲页面
-  router.push({
-    path: '/audience-lecture-play',
-    query: {
-      id: currentLecture.value.id,
-      lectures: JSON.stringify(lectures.value)
+const joinLecture = async () => {
+  const uid = localStorage.getItem('uid');
+  const lid = currentLecture.value.lid;
+  if (!uid || !lid) {
+    window.$message?.error('用户信息缺失');
+    return;
+  }
+  const form = new FormData();
+  form.append('uid', uid);
+  form.append('lid', lid);
+  try {
+    const res = await api.post('/listener/join', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && res.res) {
+      router.push({
+        path: '/audience-lecture-play',
+        query: {
+          lid: lid
+        }
+      });
+    } else {
+      window.$message?.error('加入演讲失败');
     }
-  });
+  } catch (e) {
+    window.$message?.error('加入演讲异常');
+  }
 };
 </script>
 

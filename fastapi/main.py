@@ -9,6 +9,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from tortoise.exceptions import DoesNotExist
 
 import speaker
+import listener
 import statistics
 from DAO.models import User, File, UserFile, Speech, SpeechFile, JoinSpeech, Create
 from config import DB_CONFIG
@@ -30,6 +31,7 @@ register_tortoise(
 
 app.include_router(speaker.router)
 app.include_router(statistics.router)
+app.include_router(listener.router)
 
 
 @app.get("/")
@@ -136,10 +138,22 @@ async def download_file(
 async def get_combined_info(fid: int = Form(...), uid: int = Form(...)):
     file = await File.get_or_none(file_id=fid)
     user = await User.get_or_none(user_id=uid)
+    # 文件名处理：取原始文件名
+    file_name = None
+    size = None
+    if file:
+        # 文件名为上传时的原始名（去除路径前缀）
+        file_name = os.path.basename(file.file_address)
+        # 获取本地文件大小
+        if os.path.exists(file.file_address):
+            size = os.path.getsize(file.file_address)
+        else:
+            size = 0
     return {
         "fid": fid,
-        "file_name": file.file_address if file else None,
-        "owner": user.username if user else None
+        "file_name": file_name,
+        "owner": user.username if user else None,
+        "size": size
     }
 
 
@@ -224,7 +238,6 @@ async def get_all_lecture(uid: int = Form(None)):
         speeches = await Speech.all()
     results = []
     for speech in speeches:
-        print(speech.speech_id)
         files = await SpeechFile.filter(speech_id=speech.speech_id).all()
         fids = [file.file_id for file in files]
         user_id = await Create.filter(speech_id=speech.speech_id).first()
