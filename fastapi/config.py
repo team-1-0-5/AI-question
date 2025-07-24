@@ -6,7 +6,7 @@ DB_CONFIG = {
                 "host": "localhost",
                 "port": 3306,
                 "user": "root",
-                "password": "root",
+                "password": "223700023",
                 "database": "ai_question",
             }
         }
