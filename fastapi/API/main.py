@@ -239,14 +239,14 @@ def ppt_to_images_with_office(ppt_path, output_dir=None):
     print(f'PPT每页图片已保存到: {output_dir}')
 
 if __name__ == "__main__":
-    ppt_path = r"E:\软件大发现\AI-question\BESTTTTT_AI_Q\test.pptx"
+    ppt_path = r"C:\Users\31025\my\作业\大三下课设\AI-question\fastapi\uploads\《Grandmaster+level+in+starcraft+II+using+multi-age.pptx"
     # result = ppt_to_text_list(ppt_path)
     # for i, page in enumerate(result, 1):
     #     print(f"--- Page {i} ---")
     #     print(page)
     #     print()
     # 新增：音频转文字演示
-    audio_path = r"E:\软件大发现\AI-question\BESTTTTT_AI_Q\test_audio.wav"  # 替换为你的音频文件路径
+    audio_path = r"C:\Users\31025\my\作业\大三下课设\AI-question\fastapi\uploads\《Grandmaster+level+in+starcraft+II+using+multi-age.pptx"  # 替换为你的音频文件路径
     # audio_text = audio_to_text(audio_path)
     # print("--- Audio to Text ---")  
     # print(audio_text) 
