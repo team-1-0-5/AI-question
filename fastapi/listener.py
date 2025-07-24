@@ -1,14 +1,3 @@
-# 题目推送接口（供演讲者调用，主动推送题目给听众）
-@router.post("/push_question")
-async def push_question_api(
-    uid: int = Form(...),
-    lid: int = Form(...),
-    qids: List[int] = Form(...),
-    times: int = Form(...)
-):
-    # 直接调用推送协程
-    await push_questions(uid, lid, qids, times)
-    return {"res": True}
 from DAO.models import JoinSpeech
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Form
 from fastapi.responses import JSONResponse
