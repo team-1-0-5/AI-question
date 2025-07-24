@@ -333,14 +333,42 @@ const downloadFile = async (file) => {
     window.$message?.error('文件下载异常');
   }
 }
+
+// 通过POST表单下载图片并显示
+async function fetchPPTImage(fid, uid) {
+  const form = new FormData();
+  form.append('fid', String(fid));
+  form.append('uid', String(uid));
+  try {
+    const baseURL = 'http://localhost:8000';
+    const res = await fetch(baseURL + '/download', {
+      method: 'POST',
+      body: form
+    });
+    if (!res.ok) return '';
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return '';
+  }
+}
+
 // PPT展示接口，支持传入页码
 const showPPT = async (page = currentPage.value) => {
   console.log(`请求PPT页码: ${page}, 当前课件: ${selectedFile.value},lid: ${lid.value}`);
 
-  if (!lid.value || !selectedFile.value || !page) return;
+  if (!lid.value || !selectedFile.value || !page) {
+    if (!selectedFile.value) {
+      window.$message?.error('请选择课件文件');
+    }
+    return;
+  }
   const fileObj = presentation.value.files.find(f => f.name === selectedFile.value);
   const fid = fileObj && fileObj.fid ? fileObj.fid : undefined;
-  if (!fid) return;
+  if (!fid) {
+    window.$message?.error('课件文件信息异常');
+    return;
+  }
   const params = new URLSearchParams();
   params.append('lid', String(lid.value));
   params.append('fid', String(fid));
@@ -352,11 +380,21 @@ const showPPT = async (page = currentPage.value) => {
     if (res && res.res) {
       if (res.page_num) totalPages.value = res.page_num;
       if (res.pic_fid) {
-        // 假设后端有下载接口
-        currentSlide.value = `/download?fid=${res.pic_fid}&uid=${localStorage.getItem('uid') || ''}`;
+        // 通过POST表单下载图片
+        const uid = localStorage.getItem('uid') || '';
+        currentSlide.value = await fetchPPTImage(res.pic_fid, uid);
       }
-    } else {
-      window.$message?.error('PPT展示失败');
+    }
+    else{
+      if (!res){
+        window.$message?.error('PPT展示失败');
+      }
+      else if (res.msg){
+        window.$message?.error(res.msg);
+      }
+      else{
+        window.$message?.error('PPT展示失败');
+      }
     }
   } catch (e) {
     window.$message?.error('PPT展示异常');

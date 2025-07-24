@@ -21,11 +21,10 @@
       </el-tab-pane>
       <el-tab-pane label="听演讲" name="play">
         <div class="ppt-viewer">
-          <img :src="currentSlide" class="slide-image" />
           <img :src="currentSlide" class="slide-image" v-if="currentSlide" />
-            <div class="navigation">
-              <span class="slide-page">第 {{ currentPage }} 页</span>
-            </div>
+          <div class="navigation">
+            <span class="slide-page">第 {{ currentPage }} 页</span>
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -42,11 +41,39 @@ const router = useRouter();
 const activeTab = ref('play');
 const currentLecture = ref({});
 const currentPage = ref(1);
+
 const currentPicFid = ref('');
-const currentSlide = computed(() => {
-  if (!currentPicFid.value) return '';
+const currentSlide = ref('');
+
+// 通过POST表单下载图片并显示
+async function fetchPPTImage(fid, uid) {
+  if (!fid || !uid) return '';
+  const form = new FormData();
+  form.append('fid', String(fid));
+  form.append('uid', String(uid));
+  try {
+    const baseURL = 'http://localhost:8000';
+    const res = await fetch(baseURL + '/download', {
+      method: 'POST',
+      body: form
+    });
+    if (!res.ok) return '';
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return '';
+  }
+}
+
+import { watch } from 'vue';
+// 监听pic_fid变化，自动POST下载图片
+watch(currentPicFid, async (fid) => {
   const uid = localStorage.getItem('uid') || '';
-  return `/download?fid=${currentPicFid.value}&uid=${uid}`;
+  if (fid && uid) {
+    currentSlide.value = await fetchPPTImage(fid, uid);
+  } else {
+    currentSlide.value = '';
+  }
 });
 
 let wsPPT = null;

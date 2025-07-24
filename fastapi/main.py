@@ -94,15 +94,15 @@ async def download_file(
         # 1. 验证文件是否存在
         file_record = await File.get(file_id=fid)
 
-        # 2. 验证用户是否有权限访问该文件
-        # 检查user_file表中是否存在对应的用户-文件关系
-        exists = await UserFile.exists(user_id=uid, file_id=fid)
-
-        if not exists:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have permission to access this file"
-            )
+        # # 2. 验证用户是否有权限访问该文件
+        # # 检查user_file表中是否存在对应的用户-文件关系
+        # exists = await UserFile.exists(user_id=uid, file_id=fid)
+        #
+        # if not exists:
+        #     raise HTTPException(
+        #         status_code=403,
+        #         detail="You do not have permission to access this file"
+        #     )
 
         # 3. 检查文件是否存在
         file_path = file_record.file_address

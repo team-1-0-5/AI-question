@@ -6,6 +6,7 @@ from fastapi import Form, APIRouter, HTTPException
 from tortoise.exceptions import DoesNotExist
 
 from DAO.models import Speech, Create, SpeechFile, File
+from listener import push_ppt
 
 router = APIRouter(
     prefix="/speaker",
@@ -121,3 +122,51 @@ async def add_file(lid: int = Form(...), fid: int = Form(...)):
     except Exception as e:
         print(f"添加演讲文件失败: {e}")
         return {"res": False}
+
+@router.post("/show_ppt")
+async def show_ppt(lid: int = Form(...), fid: int = Form(...), page: int = Form(...)):
+    """
+    展示PPT指定页，自动生成图片（如已生成则复用），并推送给听众
+    """
+
+    # 获取当前项目根目录
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 1. 查找文件路径
+    file_obj = await File.get_or_none(file_id=fid)
+    if not file_obj or not file_obj.file_address.lower().endswith(('.ppt', '.pptx')):
+        return {"res": False, "msg": "文件不存在或不是PPT"}
+
+    ppt_path = os.path.join(base_dir, file_obj.file_address)
+    if not os.path.exists(ppt_path):
+        return {"res": False, "msg": "PPT文件不存在"}
+
+    # 2. 生成图片输出目录
+    output_dir = os.path.splitext(ppt_path)[0] + "_imgs"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 3. 检查图片是否已生成
+    img_path = os.path.join(output_dir, f"{page}.JPG")
+    if not os.path.exists(img_path):
+        # 用office自动化生成所有图片（只生成一次）
+        API.ppt_to_images_with_office(ppt_path, output_dir)
+        # 检查目标图片是否生成
+        if not os.path.exists(img_path):
+            return {"res": False, "msg": "图片生成失败"}
+
+    # 4. 将图片保存到File表（如已存在则复用）
+    # 检查是否已有该图片文件
+    rel_img_path = os.path.relpath(img_path, base_dir)
+    file_rec = await File.get_or_none(file_address=rel_img_path)
+    if not file_rec:
+        file_rec = await File.create(file_address=rel_img_path, file_type="ppt_img")
+    pic_fid = file_rec.file_id
+
+    # 5. 统计总页数
+    page_num = len([f for f in os.listdir(output_dir) if f.lower().endswith('.jpg')])
+
+    # 6. 推送PPT页码和图片fid给所有听众
+    await push_ppt(lid, page, pic_fid)
+
+    return {"res": True, "page_num": page_num, "pic_fid": pic_fid}

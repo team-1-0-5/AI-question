@@ -218,18 +218,30 @@ def ppt_to_images_with_office(ppt_path, output_dir=None):
     import os
     import win32com.client
     import re
+    import shutil
     ppt_basename = os.path.splitext(os.path.basename(ppt_path))[0]
+    parent_dir = os.path.dirname(ppt_path)
+    # PowerPoint会自动在parent_dir下生成一个以文件名为名的目录
+    ppt_basename=ppt_basename.split(".")[0]
+    temp_output_dir = os.path.join(parent_dir, ppt_basename)
     if output_dir is None:
-        output_dir = os.path.join(os.getcwd(), ppt_basename)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        output_dir = temp_output_dir
+    # 先确保parent_dir存在
+    if not os.path.exists(parent_dir):
+        os.makedirs(parent_dir)
     ppt_app = win32com.client.Dispatch('PowerPoint.Application')
     ppt_app.Visible = 1
     presentation = ppt_app.Presentations.Open(ppt_path, WithWindow=False)
     # 17=ppSaveAsJPG，18=ppSaveAsPNG
-    presentation.SaveAs(output_dir, 17)
+    print(f"PowerPoint SaveAs目录: {temp_output_dir}")
+    presentation.SaveAs(temp_output_dir, 17)
     presentation.Close()
     ppt_app.Quit()
+    # 如果用户指定了output_dir且和PowerPoint生成的目录不同，则移动
+    if os.path.abspath(output_dir) != os.path.abspath(temp_output_dir):
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        shutil.move(temp_output_dir, output_dir)
     # 重命名“幻灯片X.JPG”为“X.JPG”
     for fname in os.listdir(output_dir):
         match = re.match(r'幻灯片(\d+)\.JPG', fname, re.IGNORECASE)
@@ -237,6 +249,7 @@ def ppt_to_images_with_office(ppt_path, output_dir=None):
             new_name = f"{int(match.group(1))}.JPG"
             os.rename(os.path.join(output_dir, fname), os.path.join(output_dir, new_name))
     print(f'PPT每页图片已保存到: {output_dir}')
+    return output_dir
 
 if __name__ == "__main__":
     ppt_path = r"C:\Users\31025\my\作业\大三下课设\AI-question\fastapi\uploads\《Grandmaster+level+in+starcraft+II+using+multi-age.pptx"
