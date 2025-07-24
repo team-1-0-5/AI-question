@@ -95,13 +95,32 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
         full_path = os.path.join(base_dir, file_path)
         if not os.path.exists(full_path):
             print("文件不存在")
-        text_list += API.ppt_to_text_list(full_path)
+            continue
+        # 检查是否已生成文字txt
+        output_dir = os.path.splitext(full_path)[0] + "_text"
+        txt_path = os.path.join(output_dir, "content.txt")
+        if os.path.exists(txt_path):
+            with open(txt_path, "r", encoding="utf-8") as f:
+                # 按页分割，去掉空行
+                content = f.read()
+            # 简单分割每页
+            pages = [p.strip() for p in content.split("--- Page ") if p.strip()]
+            # 去掉页码头部
+            for p in pages:
+                idx = p.find("---\n")
+                if idx != -1:
+                    text_list.append(p[idx+4:].strip())
+                else:
+                    # 兼容无---\n的情况
+                    lines = p.split("\n", 1)
+                    text_list.append(lines[1].strip() if len(lines)>1 else lines[0].strip())
+        else:
+            text_list += API.ppt_to_text_list(full_path)
 
     if start_page is None:
         start_page = 1
     if end_page is None:
         end_page = len(text_list)
-
     result = API.summarize_and_generate_questions(text_list[start_page:end_page],"a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh")
     print(result)
 
@@ -158,6 +177,7 @@ async def show_ppt(lid: int = Form(...), fid: int = Form(...), page: int = Form(
     # 4. 将图片保存到File表（如已存在则复用）
     # 检查是否已有该图片文件
     rel_img_path = os.path.relpath(img_path, base_dir)
+    print(rel_img_path)
     file_rec = await File.get_or_none(file_address=rel_img_path)
     if not file_rec:
         file_rec = await File.create(file_address=rel_img_path, file_type="ppt_img")

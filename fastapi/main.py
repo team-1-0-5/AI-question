@@ -1,12 +1,15 @@
 import os
 import time
 
+import pythoncom
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from tortoise.contrib.fastapi import register_tortoise
 from tortoise.exceptions import DoesNotExist
+import multiprocessing
+import API.main as API
 
 import speaker
 import listener
@@ -45,6 +48,7 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+
 @app.post("/upload")
 async def upload_file(
         file: UploadFile = File(),
@@ -58,7 +62,6 @@ async def upload_file(
 
     try:
         # 创建安全的文件名
-
         filename = f"{uid}_{time.time()}_{file.filename}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
@@ -78,6 +81,19 @@ async def upload_file(
             user_id=uid,
             file_id=file_record.file_id
         )
+
+
+        # PPT转文字（同步处理，用户需等待）
+        if file_path.lower().endswith(('.ppt', '.pptx')):
+            output_dir = os.path.splitext(file_path)[0] + "_text"
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            text_list = API.ppt_to_text_list(file_path,False)
+            txt_path = os.path.join(output_dir, "content.txt")
+            with open(txt_path, "w", encoding="utf-8") as txtf:
+                for i, page in enumerate(text_list, 1):
+                    txtf.write(f"--- Page {i} ---\n{page}\n\n")
+
 
         return {"fid": file_record.file_id}
 

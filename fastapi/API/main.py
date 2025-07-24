@@ -1,15 +1,18 @@
-from pptx import Presentation
-from PIL import Image
 import io
+import os
+import re
+import shutil
+
 import easyocr
 import numpy as np
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.shapes.picture import Picture
-from typing import Any
+import requests  # 新增：用于调用智谱AI API
 # 新增导入
 import whisper
-import requests  # 新增：用于调用智谱AI API
-import re
+import win32com.client
+from PIL import Image
+from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.shapes.picture import Picture
 
 # 初始化 EasyOCR
 reader = easyocr.Reader(['ch_sim', 'en'])  # 支持中英文
@@ -29,7 +32,7 @@ def audio_to_text(audio_path):
     result = whisper_model.transcribe(audio_path)
     return result.get('text', '')
 
-def ppt_to_text_list(ppt_path):
+def ppt_to_text_list(ppt_path,change_pic=True):
     prs = Presentation(ppt_path)
     all_pages = []
     for slide in prs.slides:
@@ -41,7 +44,7 @@ def ppt_to_text_list(ppt_path):
                 page_text.append(text)
             # 提取图片并OCR
             if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                if isinstance(shape, Picture):
+                if change_pic and isinstance(shape, Picture):
                     image = shape.image
                     image_bytes = image.blob
                     image_stream = io.BytesIO(image_bytes)
@@ -176,7 +179,6 @@ def ppt_to_images(ppt_path, output_dir=None):
     """
     import os
     from pptx import Presentation
-    from pptx.enum.shapes import MSO_SHAPE_TYPE
     from PIL import Image, ImageDraw, ImageFont
 
     prs = Presentation(ppt_path)
@@ -215,10 +217,7 @@ def ppt_to_images_with_office(ppt_path, output_dir=None):
     输出文件夹为PPT同名（不含扩展名），每页图片命名为1.JPG、2.JPG等。
     依赖：pip install pywin32，需本机安装Microsoft Office PowerPoint。
     """
-    import os
-    import win32com.client
-    import re
-    import shutil
+
     ppt_basename = os.path.splitext(os.path.basename(ppt_path))[0]
     parent_dir = os.path.dirname(ppt_path)
     # PowerPoint会自动在parent_dir下生成一个以文件名为名的目录
