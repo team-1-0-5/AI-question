@@ -122,7 +122,7 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
         start_page = 1
     if end_page is None:
         end_page = len(text_list)
-    listener_ids = await JoinSpeech.filter(speech_id=lid).all()
+    listener_ids = await JoinSpeech.filter(speech_id=lid).all().values("user_id")
 
     for listener_id in listener_ids:
         result = API.summarize_and_generate_questions(text_list[start_page:end_page],
@@ -151,7 +151,7 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
             q_ids=[]
             for i in range(len(questions)):
                 # 获取正确答案文本
-                correct_answer = option_groups[i][answer_indices[i]]
+                correct_answer = answer_indices[i]
 
                 # 创建并保存问题记录
                 new_question=await Question.create(
@@ -162,7 +162,8 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
                 )
                 new_question_id=new_question.question_id
                 q_ids.append(new_question_id)
-            await push_questions(listener_id, lid, q_ids)
+            print(listener_id, lid, q_ids,1)
+            await push_questions(listener_id["user_id"], lid, q_ids,1)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"处理错误: {str(e)}")
     return {'res':1}

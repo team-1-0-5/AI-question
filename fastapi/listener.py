@@ -99,17 +99,20 @@ async def push_questions(uid: int, lid: int, qids: List[int], times: int):
             questions.append({
                 "qid": qid,
                 "question": question.question,
-                "choices": question.options.split("|")
+                "choices": question.options.split(";")
             })
         except DoesNotExist:
             continue
 
+    print(question_ws_pool, lid in question_ws_pool, uid in question_ws_pool[lid])
     # 推送题目给特定用户
     if lid in question_ws_pool and uid in question_ws_pool[lid]:
         data = {"questions": questions, "times": times}
+        print(data)
         # 发送给该用户的所有连接（可能多个标签页）
         for ws in list(question_ws_pool[lid][uid]):
             try:
+                print(data)
                 await ws.send_text(json.dumps(data))
             except Exception as e:
                 # 处理发送失败的情况（如连接已关闭）
@@ -151,12 +154,11 @@ async def post_answer(
         try:
             question = await Question.get(question_id=qid)
             user_answer = str(answers[idx])
-
             # 记录或更新用户答案
             await QuestionUser.update_or_create(
                 question_id=qid,
                 user_id=uid,
-                defaults={"user_answer": user_answer}
+                user_answer=user_answer
             )
 
             # 判断是否正确
@@ -196,7 +198,7 @@ async def answer_res(
             questions_list.append({
                 "qid": qid,
                 "question": question.question,
-                "choices": question.options.split("|")
+                "choices": question.options.split(";")
             })
 
             # 正确答案转换为整数
@@ -210,7 +212,7 @@ async def answer_res(
             except DoesNotExist:
                 user_answers.append(-1)  # -1 表示未作答
 
-            reason.append(question.explanation if hasattr(question, 'explanation') else "暂无解析")
+            reason.append(question.analysis)
         except DoesNotExist:
             # 题目不存在时跳过
             continue
@@ -221,6 +223,7 @@ async def answer_res(
         "true_answers": true_answers,
         "reason": reason
     })
+
 
 # 加入演讲接口
 @router.post("/join")
