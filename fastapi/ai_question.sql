@@ -11,7 +11,7 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 24/07/2025 13:28:39
+ Date: 24/07/2025 20:26:29
 */
 
 SET NAMES utf8mb4;
@@ -85,16 +85,20 @@ INSERT INTO `join_speech` VALUES (2, 9);
 -- ----------------------------
 DROP TABLE IF EXISTS `question`;
 CREATE TABLE `question`  (
-  `question_id` int NOT NULL,
+  `question_id` int NOT NULL AUTO_INCREMENT,
   `options` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `answer` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `question` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `analysis` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   PRIMARY KEY (`question_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of question
 -- ----------------------------
+INSERT INTO `question` VALUES (1, '提高全局搜索能力;提高局部搜索能力;减少算法运行时间;增加算法复杂度', '提高局部搜索能力', 'MGBGA算法相比传统遗传算法的优点是什么？', 'MGBGA算法通过多染色体组设计，提高了小范围内采样率，从而改善了算法局部搜索的能力。');
+INSERT INTO `question` VALUES (2, '𝜀-greedy策略;softmax策略;A-STAR算法;DQN算法', '𝜀-greedy策略', '基于强化学习的AGV路径规划算法中，常用的探索与利用策略有哪些？', '常用的探索与利用策略包括𝜀-greedy策略和softmax策略，它们可以平衡智能体在决策时的探索和利用力度。');
+INSERT INTO `question` VALUES (3, '单一等级;两级管理;三级管理;多级管理', '三级管理', 'AGV充电调度策略中，如何划分AGV的剩余电量等级？', 'AGV充电调度策略将剩余电量划分为3级，分别为电量充足、过渡状态和不可调度状态，以便更好地管理AGV的工作时间和充电行为。\"');
 
 -- ----------------------------
 -- Table structure for question_user
