@@ -88,7 +88,7 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
             file_path2 = file2.file_address
             files_path.append(file_path2)
 
-    base_dir = r"D:\2025_summer\AI-question\fastapi"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
     text_list = []
     for file_path in files_path:
@@ -102,7 +102,7 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
     if end_page is None:
         end_page = len(text_list)
 
-    result = API.summarize_and_generate_questions(text_list[start_page:end_page])
+    result = API.summarize_and_generate_questions(text_list[start_page:end_page],"a9205aba794f4f00acf33541eddbcd17.vqgIdbW54DlezvJh")
     print(result)
 
 # 添加演讲文件接口
