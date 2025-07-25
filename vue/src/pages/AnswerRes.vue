@@ -42,9 +42,9 @@
             </span>
           </div>
         </div>
-        <div class="answer-reason" v-if="getReason(index)">
+        <div class="question-content" v-if="getReason(index)">
           <span class="label">解析：</span>
-          <span class="reason-text">{{ getReason(index) }}</span>
+          <span class="question-content">{{ getReason(index) }}</span>
         </div>
       </div>
     </div>
@@ -114,7 +114,7 @@ export default {
       // 跳转回听演讲页面，带上lid参数
       const lid = this.$route.query.lid;
       this.$router.push({
-        path: '/lecture-play',
+        path: '/audience-lecture-play',
         query: { lid }
       });
     },
@@ -137,7 +137,7 @@ export default {
       params.append('lid', lid);
       params.append('times', times);
       const api = (await import('@/utils/api.js')).default;
-      const res = await api.post('/answer_res', params, {
+      const res = await api.post('/listener/answer_res', params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       if (res && Array.isArray(res.questions)) {

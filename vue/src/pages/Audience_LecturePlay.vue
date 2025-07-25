@@ -118,6 +118,8 @@ onMounted(async () => {
         const data = JSON.parse(event.data);
         // 题目推送
         if (data.questions && Array.isArray(data.questions)) {
+          // 控制台打印题目内容
+          console.log('收到题目推送:', data.questions);
           router.push({
             path: '/answer-quiz',
             query: {

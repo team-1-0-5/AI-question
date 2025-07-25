@@ -71,6 +71,7 @@
 
 <script>
 import { useRoute } from 'vue-router';
+import api from '../utils/api';
 export default {
   data() {
     return {
@@ -132,31 +133,28 @@ export default {
       const qids = this.questions.map(q => q.id);
       const answers = qids.map((_, idx) => this.answers[idx]);
       try {
-        const params = new URLSearchParams();
-        params.append('uid', uid);
-        qids.forEach(qid => params.append('qids', qid));
-        answers.forEach(ans => params.append('answers', ans));
-        const res = await this.$axios?.post?.('/post_answer', params, {
+        // 构造表单数据
+        const form = new URLSearchParams();
+        form.append('uid', uid);
+        qids.forEach(qid => form.append('qids', qid));
+        answers.forEach(ans => form.append('answers', ans));
+        // 表单方式提交
+        const res = await api.post('/listener/post_answer', form, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        })
-          || (await import('@/utils/api.js')).default.post('/post_answer', params, {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-          });
-        if (res && typeof res.score === 'number') {
-          // 弹窗选择
+        });
+        console.log('提交结果:', res);
+        if (res && res.score !== undefined && !isNaN(Number(res.score))) {
           if (window.confirm(`答案提交成功！得分：${res.score}\n\n点击“确定”查看解析，点击“取消”返回听演讲`)) {
-            // 跳转到解析页，传递题目和答案
             this.$router.push({
               path: '/answer-res',
               query: {
-                questions: encodeURIComponent(JSON.stringify(this.questions)),
-                answers: encodeURIComponent(JSON.stringify(this.answers))
+                lid: this.$route.query.lid,
+                times: this.$route.query.times || 1,
               }
             });
           } else {
-            // 返回听演讲页面
             this.$router.push({
-              path: '/lecture-play',
+              path: '/audience-lecture-play',
               query: { lid: this.$route.query.lid }
             });
           }

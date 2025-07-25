@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from '@/utils/api.js';
+import api from '@/utils/api.js';
 
 const lectureName = ref('');
 const lectureDesc = ref('');
@@ -83,9 +83,9 @@ async function onFilesChange(e: Event) {
       formData.append('uid', uid);
       formData.append('type', 'courseware');
       try {
-        const res = await axios.post('/upload', formData, {
+        const res = await api.post('/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        }) as { fid?: number };
         if (res && res.fid) {
           const idx = fileList.value.findIndex(f => f.name === file.name && f.status === 'pending');
           if (idx !== -1) {
@@ -127,9 +127,9 @@ async function onSubmit() {
       params.append('start_time', startTime.value);
     }
     file_ids.forEach(fid => params.append('file_ids', String(fid)));
-    const res = await axios.post('/speaker/lecture_create', params, {
+    const res = await api.post('/speaker/lecture_create', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
+    }) as { lids?: number };
     if (res && res.lids) {
       alert('演讲创建成功！ID: ' + res.lids);
       history.back();
