@@ -86,6 +86,7 @@ async def upload_file(
         # PPT转文字（同步处理，用户需等待）
         if file_path.lower().endswith(('.ppt', '.pptx')):
             output_dir = os.path.splitext(file_path)[0] + "_text"
+            print(file_path)
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             text_list = API.ppt_to_text_list(file_path,False)

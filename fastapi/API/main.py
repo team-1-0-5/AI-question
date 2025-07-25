@@ -80,8 +80,12 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "你是一个智能助理。请根据以下内容：\n"
         + "\n".join(text_list) +
         "\n\n1. 只做简明扼要的总结（不超过150字）。\n"
-        "2. 针对总结内容，提出3个关键问题，每个问题给出4个选项（只有一个正确，其余为干扰项）。\n"
-        "3. 每个问题请在选项后面输出“正确答案：A/B/C/D”和“解析：...”\n"
+        "2. 针对原始内容及相关常识，提出 5 个具有深度的关键问题，每个问题给出 4 个选项（只有一个正确，其余为干扰项）。\n"
+        "3. 问题需基于内容推理判断得出，而非直接来源于原文表述，可适当扩展题目长度以保证完整性\n"
+        "4. 问题题干不少于50字\n"
+        "5. 问题需基于内容推理判断得出，而非直接来源于原文表述，可适当扩展题目长度以保证完整性。\n"
+        "6. 不要出下面哪项是xxx之类直接得到答案的问题\n"
+        "7. 每个问题请在选项后面输出“正确答案：A/B/C/D”和“解析：...”\n"
         "输出格式要求：\n"
         "总结：...\n"
         "问题1：...\n"
@@ -98,7 +102,7 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "解析：...\n"
     )
     data = {
-        "model": "chatglm_std",
+        "model": "GLM-4-Plus",
         "prompt": prompt
     }
     response = requests.post(url, headers=headers, json=data)

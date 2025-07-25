@@ -61,12 +61,10 @@
             <div class="ppt-container">
               <img :src="currentSlide" class="slide-image" />
               <div class="navigation">
-                <el-button @click="prevSlide" :disabled="currentPage === 1">上一页</el-button>
                 <span class="slide-page">第
                   <el-input-number v-model="currentPage" :min="1" :max="totalPages" size="small" :style="{width: (String(totalPages).length * 18 + 50) + 'px', margin: '0 6px'}" />
                   / {{ totalPages }} 页
                 </span>
-                <el-button @click="nextSlide" :disabled="currentPage === totalPages">下一页</el-button>
               </div>
               <div class="file-select">
                 <el-select v-model="selectedFile" placeholder="选择课件" style="width:180px;">
