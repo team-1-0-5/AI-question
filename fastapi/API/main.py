@@ -1,5 +1,6 @@
 import io
 import os
+import random
 import re
 import shutil
 
@@ -86,6 +87,7 @@ def summarize_and_generate_questions(text_list, glm_api_key=None):
         "5. 问题需基于内容推理判断得出，而非直接来源于原文表述，可适当扩展题目长度以保证完整性。\n"
         "6. 不要出下面哪项是xxx之类直接得到答案的问题\n"
         "7. 每个问题请在选项后面输出“正确答案：A/B/C/D”和“解析：...”\n"
+        "8. 基于"+str(random.random())+"随机出题\n"
         "输出格式要求：\n"
         "总结：...\n"
         "问题1：...\n"
