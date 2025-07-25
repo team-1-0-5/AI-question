@@ -39,7 +39,7 @@
                   <circle cx="12" cy="12" r="10"></circle>
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <span>{{ formatDate(lecture.start_time) }}</span>
+                <span>{{ lecture.start_time.slice(0, 10) + ' ' + lecture.start_time.slice(11, 16) }}</span>
               </div>
               <div class="info-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
