@@ -13,7 +13,7 @@
         <div class="lecture-detail-pane">
           <h2 class="lecture-title">{{ currentLecture.name }}</h2>
           <div class="meta-info">
-            <span>时间：{{ currentLecture.start_time.slice(0, 10) + ' ' + currentLecture.start_time.slice(11, 16) }}</span>
+            <span>时间：{{ currentLecture.start_time}}</span>
             <span>演讲者：{{ currentLecture.speaker }}</span>
             <span>参与人数：{{ currentLecture.join_num }}</span>
           </div>
