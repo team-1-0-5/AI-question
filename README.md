@@ -18,7 +18,7 @@
 
 ## npm安装
 1. 在[官网](https://nodejs.org/en/download/)下载安装
-2. 在命令行配置`npm config set registry https://registry.npm.taobao.org`
+2. 在命令行配置`npm config set registry https://registry.npmjs.org/`
 
 ## 项目结构
 
