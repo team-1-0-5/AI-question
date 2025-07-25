@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from '@/utils/api.js'
 const router = useRouter()
@@ -41,8 +41,33 @@ const route = useRoute()
 const presentation = ref({
   title: "即将开始的演讲",
   participants: 0,
-  startTime: "2025-07-22 09:00",
-  description: "请在演讲开始前准备好课件和内容。"
+  startTime: "",
+  description: "",
+  speaker: "",
+  join_num: 0,
+  fids: []
+})
+
+onMounted(async () => {
+  const lid = Number(route.query.lid) || Number(route.params.lid)
+  if (!lid) return
+  const form = new FormData()
+  form.append('lid', String(lid))
+  try {
+    const res = await axios.post('/lecture_detail', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res && res.lid) {
+      presentation.value.title = res.name || ''
+      presentation.value.speaker = res.speaker || ''
+      presentation.value.startTime = res.start_time || ''
+      presentation.value.join_num = res.join_num || 0
+      presentation.value.participants = res.join_num || 0
+      presentation.value.fids = res.fids || []
+      // 可选：补充描述
+      presentation.value.description = `演讲者：${res.speaker || ''}`
+    }
+  } catch {}
 })
 async function startPresentation() {
   // 获取 lid（优先 query.lid，其次 params.lid）

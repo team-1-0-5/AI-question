@@ -26,7 +26,7 @@
             </div>
             <div class="stats">
               <el-statistic title="参与人数" :value="presentation.participants" class="stat-green" />
-              <el-statistic title="开始时间" :value="new Date(presentation.startTime)" class="stat-blue" />
+              <el-statistic title="开始时间" :value="presentation.startTime.slice(0, 10) + ' ' + presentation.startTime.slice(11, 16)" class="stat-blue" />
             </div>
             <p class="description main-desc">{{ presentation.description }}</p>
             <div style="margin-top: 28px; text-align: right;">

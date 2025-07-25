@@ -49,7 +49,7 @@
                   <circle cx="12" cy="12" r="10"></circle>
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <span>{{ formatDate(lecture.start_time) }}</span>
+                <span>{{ lecture.start_time.slice(0, 10) + ' ' + lecture.start_time.slice(11, 16) }}</span>
               </div>
               <div class="info-row">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -260,8 +260,14 @@ function onCreate() {
 }
 
 function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
+  // 只展示本地年月日时分，不处理时区
+  const date = new Date(dateString.replace(/-/g, '/'));
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const h = date.getHours();
+  const min = date.getMinutes().toString().padStart(2, '0');
+  return `${y}年${m}月${d}日 ${h}:${min}`;
 }
 
 function onTabChange(idx: number) {
