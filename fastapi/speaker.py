@@ -5,7 +5,7 @@ import API.main as API
 from fastapi import Form, APIRouter, HTTPException
 from tortoise.exceptions import DoesNotExist
 
-from DAO.models import Speech, Create, SpeechFile, File, Question, JoinSpeech
+from DAO.models import Speech, Create, SpeechFile, File, Question, JoinSpeech, QuestionUser, User, SpeechQuestion
 from listener import push_ppt, push_questions
 
 router = APIRouter(
@@ -162,6 +162,7 @@ async def post_answer(lid: int = Form(...), fid: int = Form(None), start_page: i
                 )
                 new_question_id=new_question.question_id
                 q_ids.append(new_question_id)
+                await SpeechQuestion.create(speech_id=lid, question_id=new_question_id)
             print(listener_id, lid, q_ids,1)
             await push_questions(listener_id["user_id"], lid, q_ids,1)
         except Exception as e:
@@ -236,3 +237,45 @@ async def show_ppt(lid: int = Form(...), fid: int = Form(...), page: int = Form(
     await push_ppt(lid, page, pic_fid)
 
     return {"res": True, "page_num": page_num, "pic_fid": pic_fid}
+
+
+# 新增接口：单次演讲正确率统计
+@router.post("/speak_rate")
+async def speak_rate(lid: int = Form(...)):
+    # 获取参与者列表
+    join_users = await JoinSpeech.filter(speech_id=lid).all().values("user_id")
+    user_ids = [u["user_id"] for u in join_users]
+    # 获取用户名映射
+    users = await User.filter(user_id__in=user_ids).all().values("user_id", "username")
+    id2name = {u["user_id"]: u["username"] for u in users}
+
+    speech_questions = await SpeechQuestion.filter(speech_id=lid).all().values("question_id")
+    question_ids = [q["question_id"] for q in speech_questions]
+    if not question_ids or not user_ids:
+        return {"total_rate": 0, "personal_rate": {}}
+
+    # 统计每个用户的答题正确数
+    personal_rate = {}
+    total_correct = 0
+    total_count = 0
+    for uid in user_ids:
+        # 获取该用户答题记录
+        answers = await QuestionUser.filter(user_id=uid, question_id__in=question_ids).all().values("question_id", "user_answer")
+        correct = 0
+        count = 0
+        for ans in answers:
+            qid = ans["question_id"]
+            user_ans = ans["user_answer"]
+            # 获取正确答案
+            q = await Question.get_or_none(question_id=qid)
+            if q and user_ans is not None:
+                count += 1
+                if str(user_ans).strip() == str(q.answer).strip():
+                    correct += 1
+        rate = int((correct / count) * 100) if count > 0 else 0
+        personal_rate[id2name.get(uid, str(uid))] = rate
+        total_correct += correct
+        total_count += count
+
+    total_rate = int((total_correct / total_count) * 100) if total_count > 0 else 0
+    return {"total_rate": total_rate, "personal_rate": personal_rate}

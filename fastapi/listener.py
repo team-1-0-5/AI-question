@@ -236,3 +236,36 @@ async def join_lecture(uid: int = Form(...), lid: int = Form(...)):
         return {"res": True}
     except Exception as e:
         return {"res": False}
+
+
+# 历史加入的演讲接口
+@router.post("/history")
+async def history(uid: int = Form(...)):
+    from DAO.models import JoinSpeech, Speech, Create, User, SpeechFile
+    # 1. 查找用户加入的所有演讲id
+    joined = await JoinSpeech.filter(user_id=uid).all()
+    speech_ids = [j.speech_id for j in joined]
+    if not speech_ids:
+        return {"data": []}
+    # 2. 查找演讲详情
+    speeches = await Speech.filter(speech_id__in=speech_ids).all()
+    result = []
+    for speech in speeches:
+        # 获取演讲者用户名
+        creator = await Create.filter(speech_id=speech.speech_id).first()
+        speaker = ""
+        if creator:
+            user = await User.filter(user_id=creator.user_id).first()
+            speaker = user.username if user else ""
+        # 获取文件id列表
+        files = await SpeechFile.filter(speech_id=speech.speech_id).all()
+        fids = [f.file_id for f in files]
+        result.append({
+            "lid": speech.speech_id,
+            "name": speech.title,
+            "speaker": speaker,
+            "start_time": str(speech.begin_time),
+            "state": speech.state,
+            "fids": fids
+        })
+    return {"data": result}

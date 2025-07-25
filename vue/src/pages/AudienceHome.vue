@@ -164,25 +164,29 @@ const logout = () => {
 }
 const activeTab = ref('home');
 
-// 历史数据假数据
-const historyLectures = ref([
-  {
-    lid: 2,
-    name: '大数据分析实战技巧与应用',
-    speaker: 'lisi',
-    start_time: '2025-06-28 10:00',
-    fids: [103],
-    status: '已结束'
-  },
-  {
-    lid: 3,
-    name: '高效PPT设计与演讲技巧',
-    speaker: 'wangwu',
-    start_time: '2025-05-15 13:30',
-    fids: [104, 105],
-    status: '已结束'
+// 历史演讲数据
+const historyLectures = ref([]);
+
+// 获取历史加入的演讲
+async function fetchHistoryLectures() {
+  const uid = localStorage.getItem('uid');
+  if (!uid) return;
+  try {
+    const form = new FormData();
+    form.append('uid', uid);
+    const res = await api.post('/listener/history', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && Array.isArray(res.data)) {
+      historyLectures.value = res.data.map(item => ({
+        ...item,
+        status: item.state === 'ongoing' ? '进行中' : item.state === 'upcoming' ? '即将开始' : '已结束'
+      }));
+    }
+  } catch (e) {
+    // 可加全局提示
   }
-]);
+}
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -231,7 +235,10 @@ const formatDate = (dateString) => {
 };
 // 监听tab切换到history时拉取数据
 watch(() => activeTab.value, (val) => {
-  if (val === 'history') fetchPersonalHistoryRate();
+  if (val === 'history') {
+    fetchPersonalHistoryRate();
+    fetchHistoryLectures();
+  }
 });
 const joinLecture = (lecture) => {
   // 跳转到详情页只传lid

@@ -6,7 +6,7 @@
         返回首页
       </el-button>
     </div>
-    <el-tabs type="border-card" class="custom-tabs">
+    <el-tabs type="border-card" class="custom-tabs" @tab-click="handleTabClick">
       <!-- 主要信息选项卡 -->
       <el-tab-pane label="基本信息">
         <div class="info-container">
@@ -143,6 +143,43 @@
 </template>
 
 <script setup>
+// 标签页切换时自动刷新正确率和排名
+function handleTabClick(tab) {
+  // 仅在切换到“数据统计”或“演讲控制”时刷新
+  if (tab.label === '数据统计' || tab.label === '演讲控制') {
+    fetchRateAndRanking();
+  }
+}
+// 发送题目功能，表单方式请求 /speaker/post_answer
+const sendQuiz = async () => {
+  if (!lid.value) {
+    window.$message?.error('演讲ID缺失');
+    return;
+  }
+  // 获取当前选中的课件文件fid
+  let fid = '';
+  if (selectedFile.value) {
+    const fileObj = presentation.value.files.find(f => f.name === selectedFile.value);
+    if (fileObj && fileObj.fid) fid = fileObj.fid;
+  }
+  const params = new FormData();
+  params.append('lid', String(lid.value));
+  if (fid) params.append('fid', String(fid));
+  if (startPage.value) params.append('start_page', String(startPage.value));
+  if (endPage.value) params.append('end_page', String(endPage.value));
+  try {
+    const res = await axios.post('/speaker/post_answer', params, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res && res.res) {
+      window.$message?.success('题目已成功发送！');
+    } else {
+      window.$message?.error('题目发送失败');
+    }
+  } catch (e) {
+    window.$message?.error('题目发送异常');
+  }
+}
 import { ref, computed, onMounted } from 'vue'
 import axios from '@/utils/api.js'
 import { useRoute } from 'vue-router'
@@ -223,11 +260,38 @@ function handleJumpPage() {
   }
 }
 
-// 正确率数据
+// 正确率及排名数据
 const correctRate = ref(80)
+const rankingData = ref([])
 const progressColor = computed(() => {
   return correctRate.value > 80 ? '#67C23A' : '#E6A23C'
 })
+
+// 获取单次演讲正确率和参与者排名
+async function fetchRateAndRanking() {
+  const params = new URLSearchParams();
+  params.append('lid', String(lid.value));
+  try {
+    const res = await axios.post('/speaker/speak_rate', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    if (res && typeof res.total_rate === 'number') {
+      correctRate.value = res.total_rate;
+    }
+    // personal_rate: {uid: rate}
+    if (res && res.personal_rate && typeof res.personal_rate === 'object') {
+      // personal_rate: {username: rate}
+      const arr = Object.entries(res.personal_rate)
+        .sort((a, b) => b[1] - a[1])
+        .map(([username, rate], idx) => ({
+          rank: idx + 1,
+          name: username,
+          accuracy: rate
+        }));
+      rankingData.value = arr;
+    }
+  } catch {}
+}
 
 // 题目发送
 const startPage = ref(1)
@@ -240,18 +304,20 @@ watch(currentPage, (val) => {
   endPage.value = val
 })
 
-// 切换课件时自动请求第一页并获取总页数和图片
+// 切换课件时自动请求第一页并获取总页数和图片，同时刷新正确率和排名
 watch(selectedFile, () => {
   if (selectedFile.value) {
     currentPage.value = 1;
     showPPT(1);
+    fetchRateAndRanking();
   }
 });
-// 翻页时请求对应页图片
+// 翻页时请求对应页图片，同时刷新正确率和排名
 watch(currentPage, (val) => {
   endPage.value = val;
   if (selectedFile.value) {
     showPPT(val);
+    fetchRateAndRanking();
   }
 });
 // 上传成功后自动获取文件信息并补充到文件列表
@@ -401,52 +467,58 @@ const showPPT = async (page = currentPage.value) => {
   }
 }
 
-const prevSlide = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-  }
-}
-const nextSlide = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-  }
-}
-// 排名数据
-const rankingData = ref([
-  { rank: 1, name: "张三", accuracy: 90 },
-  { rank: 2, name: "李四", accuracy: 80 },
-  { rank: 3, name: "王五", accuracy: 70 }
-])
-
-const sendQuiz = async () => {
-  let fid = undefined;
-  if (selectedFile.value) {
-    const fileObj = presentation.value.files.find(f => f.name === selectedFile.value);
-    if (fileObj && fileObj.fid) fid = fileObj.fid;
-  }
-  const params = new URLSearchParams();
-  params.append('lid', String(lid.value));
-  if (fid) params.append('fid', String(fid));
-  if (startPage.value) params.append('start_page', String(startPage.value));
-  if (endPage.value) params.append('end_page', String(endPage.value));
+onMounted(async () => {
+  const form = new FormData();
+  form.append('lid', String(lid.value));
   try {
-    const res = await axios.post('/speaker/post_answer', params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const res = await axios.post('/lecture_detail', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
-    if (res && res.res) {
-      window.$message?.success('题目发送成功！');
-    } else {
-      window.$message?.error('题目发送失败');
+    if (res && res.lid) {
+      presentation.value.lid = res.lid;
+      presentation.value.title = res.name || '';
+      presentation.value.speaker = res.speaker || '';
+      presentation.value.startTime = res.start_time || '';
+      presentation.value.join_num = res.join_num || 0;
+      presentation.value.participants = res.join_num || 0;
+      // 文件id列表转为文件对象，补充详细信息
+      presentation.value.files = [];
+      const uid = localStorage.getItem('uid');
+      if (Array.isArray(res.fids) && uid) {
+        for (const fid of res.fids) {
+          const fileForm = new FormData();
+          fileForm.append('fid', String(fid));
+          fileForm.append('uid', String(uid));
+          try {
+            const fileRes = await axios.post('/file_info', fileForm, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (fileRes && fileRes.fid) {
+              presentation.value.files.push({
+                fid: fileRes.fid,
+                name: fileRes.file_name || `文件${fid}`,
+                owner: fileRes.owner || '',
+                size: fileRes.size || '',
+                uploadTime: fileRes.uploadTime || ''
+              });
+            }
+          } catch {}
+        }
+      }
+      // 初始化时刷新正确率和排名
+      fetchRateAndRanking();
     }
   } catch (e) {
-    window.$message?.error('题目发送异常');
+    window.$message?.error('演讲详情获取失败');
   }
-}
-// 自定义文件上传，表单形式，接口 /upload
+});
+
+// 修复：上传课件的自定义方法，必须包裹为函数 customUpload
 const customUpload = async (option) => {
   const uid = localStorage.getItem('uid');
   if (!uid) {
     window.$message?.error('未登录，无法上传');
+    option.onError && option.onError();
     return;
   }
   const form = new FormData();
@@ -482,7 +554,10 @@ async function endPresentation() {
     });
     if (res && res.res) {
       window.$message?.success('演讲已结束！');
-      // 可选：跳转主页或刷新状态
+      // 结束后自动跳转主页
+      setTimeout(() => {
+        window.$router ? window.$router.push('/') : (typeof $router !== 'undefined' && $router.push('/'));
+      }, 600);
     } else {
       window.$message?.error('结束演讲失败');
     }

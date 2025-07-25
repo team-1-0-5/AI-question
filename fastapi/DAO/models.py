@@ -92,7 +92,7 @@ class JoinSpeech(Model):
 
 # speech_question（演讲题目关联）
 class SpeechQuestion(Model):
-    speech_id = fields.IntField()
+    speech_id = fields.IntField(pk=True)
     question_id = fields.IntField()
     class Meta:
         table = "speech_question"

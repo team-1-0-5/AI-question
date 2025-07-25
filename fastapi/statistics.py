@@ -20,22 +20,28 @@ async def personal_history_rate(uid: int = Form(...), day: int = Form(...)):
         dates.append(d.strftime("%Y-%m-%d"))
         start = datetime.combine(d, datetime.min.time())
         end = start + timedelta(days=1)
-        # 1. 查找该用户当天加入的所有演讲
+        # 1. 查找该用户当天加入的所有演讲（start_time在当天）
         joined = await JoinSpeech.filter(user_id=uid)
         if not joined:
             rates.append(None)
             continue
         joined_speech_ids = [j.speech_id for j in joined]
-        # 2. 查找当天分配给该用户的题目（allocation表，按times范围和speech_id）
-        allocations = await Allocation.filter(user_id=uid, times__gte=start, times__lt=end)
-        if not allocations:
+        # 查找这些演讲的start_time在当天的
+        speeches = await User.filter(user_id=uid)
+        from DAO.models import Speech
+        speeches_today = await Speech.filter(speech_id__in=joined_speech_ids, begin_time__gte=start, begin_time__lt=end)
+        if not speeches_today:
             rates.append(None)
             continue
-        question_ids = [a.question_id for a in allocations]
+        speech_ids_today = [s.speech_id for s in speeches_today]
+        # 2. 查找当天这些演讲的所有题目
+        from DAO.models import SpeechQuestion
+        speech_questions = await SpeechQuestion.filter(speech_id__in=speech_ids_today).all()
+        question_ids = [sq.question_id for sq in speech_questions]
         if not question_ids:
             rates.append(None)
             continue
-        # 3. 查找答题表（question_user）
+        # 3. 查找该用户当天这些题目的答题情况
         answers = await QuestionUser.filter(user_id=uid, question_id__in=question_ids)
         answer_map = {a.question_id: a.user_answer for a in answers}
         # 4. 查找题库表，统计正确率
@@ -48,7 +54,6 @@ async def personal_history_rate(uid: int = Form(...), day: int = Form(...)):
             user_ans = answer_map.get(qid, None)
             if user_ans is not None and user_ans == q.answer:
                 correct += 1
-            # 未作答或作答错误都不加分
         rate = round(correct / total * 100, 2) if total > 0 else 0.0
         rates.append(rate)
     return {"rates": rates, "date": dates}
